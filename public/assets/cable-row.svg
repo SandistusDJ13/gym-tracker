@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520">
+  <rect width="800" height="520" fill="#ecece8"/>
+  <g fill="none" stroke="#22272b" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M130 420h540M620 130v290M590 145h60M620 145L465 292"/>
+    <circle cx="385" cy="225" r="34"/>
+    <path d="M370 260l-45 110M340 295l125-3M325 370l-105 50M325 370l120 50M300 390h180"/>
+    <path d="M465 292l-22 10"/>
+  </g>
+  <path d="M350 275l65 17" stroke="#8dbf2b" stroke-width="12" stroke-linecap="round"/>
+  <text x="400" y="480" text-anchor="middle" fill="#70767b" font-family="Arial,sans-serif" font-size="24" font-weight="700">SEATED CABLE ROW · NÁHLED</text>
+</svg>

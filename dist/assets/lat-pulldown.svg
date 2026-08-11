@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520">
+  <rect width="800" height="520" fill="#ecece8"/>
+  <g fill="none" stroke="#22272b" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M185 90h430M225 90v335M575 90v335M160 425h480"/>
+    <circle cx="400" cy="205" r="34"/>
+    <path d="M400 242v115M400 270l-95-90M400 270l95-90M305 180h190M400 357l-55 68M400 357l55 68M335 370h130"/>
+  </g>
+  <path d="M300 138l25 32M500 138l-25 32" stroke="#8dbf2b" stroke-width="12" stroke-linecap="round"/>
+  <text x="400" y="480" text-anchor="middle" fill="#70767b" font-family="Arial,sans-serif" font-size="24" font-weight="700">LAT PULLDOWN · NÁHLED</text>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520">
+  <rect width="800" height="520" fill="#ecece8"/>
+  <g fill="none" stroke="#22272b" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M165 420h470M270 315h250M300 315v105M490 315v105M270 315v-165"/>
+    <circle cx="350" cy="205" r="34"/>
+    <path d="M330 238l-42 77M345 252l80 63M425 315l80 45M505 360l-55 60M520 350l45 20"/>
+  </g>
+  <path d="M505 360l-42 50" stroke="#8dbf2b" stroke-width="12" stroke-linecap="round"/>
+  <text x="400" y="480" text-anchor="middle" fill="#70767b" font-family="Arial,sans-serif" font-size="24" font-weight="700">LEG CURL · NÁHLED</text>
+</svg>
