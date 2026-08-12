@@ -84,6 +84,41 @@ const templates: ExerciseTemplate[] = [
   strength('smith-squat', 'SMITH MACHINE SQUAT', 'Legs', 'squat', ['Chodidla lehce vpředu', 'Kolena ve směru špiček', 'Záda neutrálně'], 'Stůj pod osou, chodidla na šířku ramen.', 'Klesni boky dolů a dozadu.', 'Postav se, kolena nezamykej.'),
 ]
 
+const imageSourceIds: Record<string, string> = {
+  'leg-press': 'Leg_Press',
+  'chest-press': 'Machine_Bench_Press',
+  'lat-pulldown': 'Wide-Grip_Lat_Pulldown',
+  'cable-row': 'Seated_Cable_Rows',
+  'leg-curl': 'Seated_Leg_Curl',
+  treadmill: 'Walking_Treadmill',
+  'leg-extension': 'Leg_Extensions',
+  'lying-leg-curl': 'Lying_Leg_Curls',
+  'pec-fly': 'Butterfly',
+  'incline-chest-press': 'Leverage_Incline_Chest_Press',
+  'cable-crossover': 'Cable_Crossover',
+  'machine-pullover': 'Straight-Arm_Pulldown',
+  'lower-back-machine': 'Lower_Back_Curl',
+  hyperextension: 'Hyperextensions_Back_Extensions',
+  'shoulder-press': 'Machine_Shoulder_Military_Press',
+  'lateral-raise-machine': 'Cable_Seated_Lateral_Raise',
+  'biceps-curl-machine': 'Machine_Bicep_Curl',
+  'triceps-extension-machine': 'Machine_Triceps_Extension',
+  'cable-pushdown': 'Triceps_Pushdown_-_Rope_Attachment',
+  'assisted-dips': 'Dip_Machine',
+  'hip-abduction': 'Thigh_Abductor',
+  'hip-adduction': 'Thigh_Adductor',
+  'standing-hip-abduction': 'Monster_Walk',
+  'seated-calf-raise': 'Seated_Calf_Raise',
+  'abs-machine': 'Ab_Crunch_Machine',
+  'torso-rotation': 'Torso_Rotation',
+  'decline-crunch': 'Decline_Crunch',
+  'stationary-bike': 'Bicycling_Stationary',
+  elliptical: 'Elliptical_Trainer',
+  'smith-squat': 'Smith_Machine_Squat',
+}
+
+const reversedImageIds = new Set(['leg-press', 'pec-fly', 'hyperextension', 'standing-hip-abduction', 'smith-squat'])
+
 const defaultWorkoutIds = ['leg-press', 'chest-press', 'lat-pulldown', 'cable-row', 'leg-curl', 'treadmill']
 
 const todayKey = () => {
@@ -253,20 +288,20 @@ function TodayView({ workout, completedSets, totalSets, updateExercise, lastResu
 }
 
 function ExerciseDiagram({ template }: { template: ExerciseTemplate }) {
-  const markerId = `arrow-${template.id}`
+  const reversed = reversedImageIds.has(template.id)
+  const startImage = `/assets/exercises/${template.id}-${reversed ? 'end' : 'start'}.jpg`
+  const endImage = `/assets/exercises/${template.id}-${reversed ? 'start' : 'end'}.jpg`
   return (
-    <div className="exercise-visual" role="img" aria-label={`Ilustrace startovní a konečné polohy cviku ${template.name}`}>
-      <svg viewBox="0 0 1000 580" aria-hidden="true">
-        <defs><marker id={markerId} markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0l10 5-10 5z" className="visual-arrow-fill" /></marker></defs>
-        <rect x="18" y="18" width="452" height="500" rx="28" className="visual-panel" /><rect x="530" y="18" width="452" height="500" rx="28" className="visual-panel" />
-        <text x="52" y="64" className="visual-label">START</text><text x="564" y="64" className="visual-label">KONEC</text>
-        <circle cx="425" cy="54" r="19" className="visual-step" /><text x="425" y="61" textAnchor="middle" className="visual-step-text">1</text>
-        <circle cx="937" cy="54" r="19" className="visual-step visual-step-end" /><text x="937" y="61" textAnchor="middle" className="visual-step-text visual-step-text-end">2</text>
-        <ExercisePose template={template} x={38} end={false} />
-        <ExercisePose template={template} x={550} end />
-        <path d="M458 270h84" className="visual-arrow-halo" /><path d="M458 270h84" className="visual-arrow" markerEnd={`url(#${markerId})`} />
-        <text x="500" y="558" textAnchor="middle" className="visual-caption">{template.name} · {template.category.toUpperCase()}</text>
-      </svg>
+    <div className="exercise-visual exercise-photos" role="group" aria-label={`Startovní a konečná poloha cviku ${template.name}`}>
+      <figure className="exercise-photo-frame">
+        <span className="exercise-photo-label"><b>1</b> START</span>
+        <img src={startImage} alt={`Výchozí poloha cviku ${template.name}`} />
+      </figure>
+      <span className="exercise-photo-arrow" aria-hidden="true">→</span>
+      <figure className="exercise-photo-frame">
+        <span className="exercise-photo-label end"><b>2</b> KONEC</span>
+        <img src={endImage} alt={`Konečná poloha cviku ${template.name}`} />
+      </figure>
     </div>
   )
 }
@@ -448,7 +483,23 @@ function SourcesView() {
     <section className="sources-view">
       <p className="eyebrow">O APLIKACI</p>
       <h1>Zdroje obrázků</h1>
-      <p>Ilustrace cviků jsou vlastní jednoduché SVG náhledy vytvořené přímo pro aplikaci GYM.</p>
+      <p>Všechny demonstrační fotografie jsou uložené lokálně. Zdrojová sada Free Exercise DB je zveřejněná jako public domain pod licencí Unlicense.</p>
+      <a className="license-link" href="https://github.com/yuhonas/free-exercise-db/blob/main/LICENSE.md" target="_blank" rel="noreferrer">Licence Free Exercise DB</a>
+      <ul>
+        {templates.map((template) => {
+          const sourceId = imageSourceIds[template.id]
+          const sourceBase = `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${sourceId}`
+          const reversed = reversedImageIds.has(template.id)
+          return (
+            <li key={template.id}>
+              <strong>{template.name}</strong>
+              <span>Autor: Free Exercise DB contributors (jednotlivý fotograf neuveden)</span>
+              <span>Licence: Public Domain / Unlicense</span>
+              <span className="source-links"><a href={`${sourceBase}/${reversed ? 1 : 0}.jpg`} target="_blank" rel="noreferrer">Zdroj START</a><a href={`${sourceBase}/${reversed ? 0 : 1}.jpg`} target="_blank" rel="noreferrer">Zdroj KONEC</a></span>
+            </li>
+          )
+        })}
+      </ul>
     </section>
   )
 }
