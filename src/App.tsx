@@ -35,11 +35,10 @@ type Workout = {
   exercises: WorkoutExercise[]
 }
 
-type Store = { active: Workout | null; history: Workout[] }
-type LegacyWorkoutExercise = Omit<WorkoutExercise, 'sets'> & { weight?: string; sets: Array<Omit<WorkoutSet, 'weight'> & { weight?: string }> }
-type LegacyWorkout = Omit<Workout, 'exercises'> & { exercises: LegacyWorkoutExercise[] }
-type LegacyStore = { active: LegacyWorkout | null; history: LegacyWorkout[] }
-type Tab = 'today' | 'history' | 'sources'
+type WorkoutPlanExercise = { exerciseId: string; reps: number[]; minutes?: number; note?: string }
+type WorkoutTemplate = { id: string; name: string; exercises: WorkoutPlanExercise[] }
+type Store = { active: Workout | null; history: Workout[]; templates: WorkoutTemplate[] }
+type Tab = 'today' | 'templates' | 'history' | 'sources'
 
 const STORAGE_KEY = 'gym-store-v1'
 
@@ -82,6 +81,19 @@ const templates: ExerciseTemplate[] = [
   duration('stationary-bike', 'STATIONARY BIKE', 'bike', ['Sedlo ve výši kyčlí', 'Kolena sledují chodidla', 'Šlapej plynule'], 'Sedni, chodidla dej do pedálů.', 'Šlapej plynule v celém kruhu.', 'Trup klidný, rytmus rovnoměrný.', 10),
   duration('elliptical', 'ELLIPTICAL', 'elliptical', ['Celé chodidlo na pedálu', 'Trup vzpřímený', 'Ruce a nohy v rytmu'], 'Postav se na pedály a chyť madla.', 'Veď pedály a madla plynule.', 'Pohyb bez nárazů, tělo uprostřed.', 10),
   strength('smith-squat', 'SMITH MACHINE SQUAT', 'Legs', 'squat', ['Chodidla lehce vpředu', 'Kolena ve směru špiček', 'Záda neutrálně'], 'Stůj pod osou, chodidla na šířku ramen.', 'Klesni boky dolů a dozadu.', 'Postav se, kolena nezamykej.'),
+  strength('barbell-bench-press', 'BARBELL BENCH PRESS', 'Chest', 'press', ['Lopatky na lavici', 'Chodidla pevně na zemi', 'Zápěstí drž rovně'], 'Lehni si, osa nad hrudníkem.', 'Spusť osu k hrudníku a vytlač ji vzhůru.', 'Paže nahoře téměř rovné.'),
+  strength('dumbbell-bench-press', 'DUMBBELL BENCH PRESS', 'Chest', 'press', ['Lopatky stáhni', 'Lokty pod činkami', 'Pohyb bez odrazu'], 'Lehni si, činky vedle hrudníku.', 'Vytlač činky vzhůru nad hrudník.', 'Činky nahoře, paže téměř rovné.'),
+  strength('decline-bench-press', 'DECLINE BENCH PRESS', 'Chest', 'press', ['Zajisti nohy', 'Lopatky drž na lavici', 'Spouštěj osu kontrolovaně'], 'Lehni si na klesající lavici, osa u spodní části hrudníku.', 'Vytlač osu kolmo vzhůru.', 'Paže nahoře téměř rovné.'),
+  strength('assisted-pull-up', 'ASSISTED PULL-UP', 'Back', 'pulldown', ['Ramena drž dole', 'Hrudník táhni k hrazdě', 'Nehoupej se'], 'Vis na hrazdě s dopomocí, paže natažené.', 'Přitáhni hrudník směrem k hrazdě.', 'Brada u hrazdy, lokty dole.'),
+  strength('one-arm-dumbbell-row', 'ONE-ARM DUMBBELL ROW', 'Back', 'row', ['Záda drž rovně', 'Loket veď k boku', 'Nerotuj trupem'], 'Opři se o lavici, paže s činkou visí dolů.', 'Přitáhni činku k boku.', 'Loket nahoře za trupem.'),
+  strength('barbell-squat', 'BARBELL SQUAT', 'Legs', 'squat', ['Kolena ve směru špiček', 'Hrudník drž nahoře', 'Paty na zemi'], 'Stůj s osou na zádech, chodidla na šířku ramen.', 'Klesni boky dolů a dozadu.', 'Stehna dole, trup pevný.'),
+  strength('romanian-deadlift', 'ROMANIAN DEADLIFT', 'Legs', 'hinge', ['Záda neutrálně', 'Kolena lehce pokrčená', 'Osa blízko nohou'], 'Stůj s osou před stehny.', 'Posuň boky dozadu a spusť osu pod kolena.', 'Trup v předklonu, hamstringy napnuté.'),
+  strength('dumbbell-lateral-raise', 'DUMBBELL LATERAL RAISE', 'Shoulders', 'lateral', ['Lokty lehce pokrčené', 'Ramena drž dole', 'Bez švihu'], 'Stůj s činkami podél těla.', 'Zvedej paže do stran.', 'Činky přibližně ve výši ramen.'),
+  strength('rear-delt-fly', 'REAR DELT FLY', 'Shoulders', 'fly', ['Hrudník drž pevný', 'Lokty měkké', 'Lopatky stáhni'], 'Uchop kladky před tělem.', 'Rozevři paže do stran.', 'Lokty vzadu v úrovni ramen.'),
+  strength('cable-biceps-curl', 'CABLE BICEPS CURL', 'Arms', 'curl', ['Lokty u boků', 'Zápěstí rovně', 'Trup bez houpání'], 'Stůj u spodní kladky, paže téměř rovné.', 'Pokrč lokty a přitáhni madlo.', 'Předloktí nahoře, lokty na místě.'),
+  strength('overhead-triceps-extension', 'OVERHEAD TRICEPS EXTENSION', 'Arms', 'overhead', ['Lokty drž u hlavy', 'Břicho zpevni', 'Hýbou se jen předloktí'], 'Stůj zády ke kladce, lokty pokrčené nad hlavou.', 'Narovnej lokty proti odporu.', 'Paže nahoře téměř rovné.'),
+  strength('plank', 'PLANK', 'Core', 'crunch', ['Lokty pod rameny', 'Tělo v jedné linii', 'Břicho pevné'], 'Klekni a opři předloktí o zem.', 'Natáhni nohy a zpevni celé tělo.', 'Drž rovnou linii od hlavy k patám.'),
+  strength('hanging-leg-raise', 'HANGING LEG RAISE', 'Core', 'crunch', ['Ramena drž dole', 'Nehoupej se', 'Pánev podsazuj'], 'Vis na hrazdě, nohy volně dolů.', 'Zvedni kolena nebo nohy před tělo.', 'Stehna nahoře, břicho stažené.'),
 ]
 
 const imageSourceIds: Record<string, string> = {
@@ -115,9 +127,22 @@ const imageSourceIds: Record<string, string> = {
   'stationary-bike': 'Bicycling_Stationary',
   elliptical: 'Elliptical_Trainer',
   'smith-squat': 'Smith_Machine_Squat',
+  'barbell-bench-press': 'Barbell_Bench_Press_-_Medium_Grip',
+  'dumbbell-bench-press': 'Dumbbell_Bench_Press',
+  'decline-bench-press': 'Decline_Barbell_Bench_Press',
+  'assisted-pull-up': 'Band_Assisted_Pull-Up',
+  'one-arm-dumbbell-row': 'One-Arm_Dumbbell_Row',
+  'barbell-squat': 'Barbell_Squat',
+  'romanian-deadlift': 'Romanian_Deadlift',
+  'dumbbell-lateral-raise': 'Side_Lateral_Raise',
+  'rear-delt-fly': 'Cable_Rear_Delt_Fly',
+  'cable-biceps-curl': 'Standing_Biceps_Cable_Curl',
+  'overhead-triceps-extension': 'Cable_Rope_Overhead_Triceps_Extension',
+  plank: 'Plank',
+  'hanging-leg-raise': 'Hanging_Leg_Raise',
 }
 
-const reversedImageIds = new Set(['leg-press', 'pec-fly', 'hyperextension', 'standing-hip-abduction', 'smith-squat'])
+const reversedImageIds = new Set(['leg-press', 'pec-fly', 'hyperextension', 'standing-hip-abduction', 'smith-squat', 'barbell-bench-press', 'romanian-deadlift'])
 
 const defaultWorkoutIds = ['leg-press', 'chest-press', 'lat-pulldown', 'cable-row', 'leg-curl', 'treadmill']
 
@@ -139,26 +164,75 @@ const makeExercise = (template: ExerciseTemplate, sets = template.defaultSets, r
 
 const makeDefaultWorkout = (): Workout => ({ id: newId(), date: todayKey(), exercises: defaultWorkoutIds.map((id) => makeExercise(templates.find((template) => template.id === id)!)) })
 
-const normalizeExercise = (exercise: LegacyWorkoutExercise): WorkoutExercise => {
-  const { weight: legacyWeight = '', sets, ...rest } = exercise
-  return { ...rest, sets: sets.map((set) => ({ ...set, weight: String(set.weight ?? legacyWeight) })) }
+const record = (value: unknown): Record<string, unknown> | null => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null
+const safeNumber = (value: unknown, fallback: number) => typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : fallback
+
+const normalizeExercise = (value: unknown): WorkoutExercise | null => {
+  const exercise = record(value)
+  if (!exercise || typeof exercise.exerciseId !== 'string') return null
+  const legacyWeight = typeof exercise.weight === 'string' || typeof exercise.weight === 'number' ? String(exercise.weight) : ''
+  const sets = Array.isArray(exercise.sets) ? exercise.sets.flatMap((value) => {
+    const set = record(value)
+    if (!set) return []
+    return [{ reps: safeNumber(set.reps, 10), weight: typeof set.weight === 'string' || typeof set.weight === 'number' ? String(set.weight) : legacyWeight, complete: set.complete === true }]
+  }) : []
+  return {
+    exerciseId: exercise.exerciseId,
+    sets,
+    note: typeof exercise.note === 'string' ? exercise.note : '',
+    minutes: typeof exercise.minutes === 'number' && Number.isFinite(exercise.minutes) ? Math.max(1, exercise.minutes) : undefined,
+    cardioComplete: exercise.cardioComplete === true,
+  }
 }
 
-const normalizeWorkout = (workout: LegacyWorkout): Workout => ({ ...workout, exercises: workout.exercises.map(normalizeExercise) })
+const normalizeWorkout = (value: unknown, active = false): Workout | null => {
+  const workout = record(value)
+  if (!workout) return null
+  const exercises = (Array.isArray(workout.exercises) ? workout.exercises : []).map(normalizeExercise).filter((item): item is WorkoutExercise => Boolean(item)).filter((item) => !active || templates.some((template) => template.id === item.exerciseId))
+  return {
+    id: typeof workout.id === 'string' ? workout.id : newId(),
+    date: typeof workout.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(workout.date) ? workout.date : todayKey(),
+    completedAt: typeof workout.completedAt === 'string' ? workout.completedAt : undefined,
+    exercises,
+  }
+}
+
+const normalizePlanExercise = (value: unknown): WorkoutPlanExercise | null => {
+  const exercise = record(value)
+  if (!exercise || typeof exercise.exerciseId !== 'string' || !templates.some((template) => template.id === exercise.exerciseId)) return null
+  const reps = Array.isArray(exercise.reps) ? exercise.reps.map((item) => Math.max(1, safeNumber(item, 10))).slice(0, 99) : []
+  return { exerciseId: exercise.exerciseId, reps, minutes: typeof exercise.minutes === 'number' ? Math.max(1, exercise.minutes) : undefined, note: typeof exercise.note === 'string' ? exercise.note : undefined }
+}
+
+const normalizeTemplate = (value: unknown): WorkoutTemplate | null => {
+  const template = record(value)
+  if (!template || typeof template.name !== 'string' || !template.name.trim()) return null
+  const exercises = (Array.isArray(template.exercises) ? template.exercises : []).map(normalizePlanExercise).filter((item): item is WorkoutPlanExercise => Boolean(item))
+  if (!exercises.length) return null
+  return { id: typeof template.id === 'string' ? template.id : newId(), name: template.name.trim(), exercises }
+}
+
+const toPlan = (exercise: WorkoutExercise): WorkoutPlanExercise => ({ exerciseId: exercise.exerciseId, reps: exercise.sets.map((set) => Math.max(1, set.reps)), minutes: exercise.minutes, note: exercise.note || undefined })
+const fromPlan = (plan: WorkoutPlanExercise): WorkoutExercise => ({ exerciseId: plan.exerciseId, sets: plan.reps.map((reps) => ({ reps, weight: '', complete: false })), note: plan.note ?? '', minutes: plan.minutes, cardioComplete: plan.minutes === undefined ? undefined : false })
 
 const loadStore = (): Store => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
-      const stored = JSON.parse(raw) as LegacyStore
-      const parsed: Store = { active: stored.active ? normalizeWorkout(stored.active) : null, history: stored.history.map(normalizeWorkout) }
+      const stored = record(JSON.parse(raw))
+      if (!stored) throw new Error('Invalid store')
+      const parsed: Store = {
+        active: normalizeWorkout(stored.active, true),
+        history: (Array.isArray(stored.history) ? stored.history : []).map((item) => normalizeWorkout(item)).filter((item): item is Workout => Boolean(item)),
+        templates: (Array.isArray(stored.templates) ? stored.templates : []).map(normalizeTemplate).filter((item): item is WorkoutTemplate => Boolean(item)),
+      }
       if (!parsed.active && !parsed.history.some((item) => item.date === todayKey())) parsed.active = makeDefaultWorkout()
       return parsed
     }
   } catch {
     // A clean store is safer than blocking the workout when stored data is invalid.
   }
-  return { active: makeDefaultWorkout(), history: [] }
+  return { active: makeDefaultWorkout(), history: [], templates: [] }
 }
 
 const formatDate = (value: string) => new Intl.DateTimeFormat('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(`${value}T12:00:00`))
@@ -166,7 +240,7 @@ const formatDate = (value: string) => new Intl.DateTimeFormat('cs-CZ', { day: 'n
 function App() {
   const [store, setStore] = useState<Store>(loadStore)
   const [tab, setTab] = useState<Tab>('today')
-  const [showNew, setShowNew] = useState(false)
+  const [editor, setEditor] = useState<{ purpose: 'workout' } | { purpose: 'template'; template?: WorkoutTemplate } | null>(null)
 
   useEffect(() => localStorage.setItem(STORAGE_KEY, JSON.stringify(store)), [store])
 
@@ -194,7 +268,7 @@ function App() {
     const allDone = store.active.exercises.every((exercise) => exercise.sets.length ? exercise.sets.every((set) => set.complete) : exercise.cardioComplete)
     if (!allDone && !window.confirm('Některé série ještě nejsou hotové. Přesto trénink dokončit?')) return
     const completed = { ...store.active, completedAt: new Date().toISOString() }
-    setStore((current) => ({ active: null, history: [completed, ...current.history] }))
+    setStore((current) => ({ ...current, active: null, history: [completed, ...current.history] }))
     setTab('history')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -202,9 +276,36 @@ function App() {
   const startWorkout = (exercises: WorkoutExercise[]) => {
     if (store.active && !window.confirm('Nový workout nahradí právě rozepsaný. Pokračovat?')) return
     setStore((current) => ({ ...current, active: { id: newId(), date: todayKey(), exercises } }))
-    setShowNew(false)
+    setEditor(null)
     setTab('today')
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const saveActiveTemplate = () => {
+    if (!store.active?.exercises.length) return
+    const name = window.prompt('Název tréninku')?.trim()
+    if (!name) return
+    const template: WorkoutTemplate = { id: newId(), name, exercises: store.active.exercises.map(toPlan) }
+    setStore((current) => ({ ...current, templates: [...current.templates, template] }))
+    setTab('templates')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const saveTemplate = (name: string, exercises: WorkoutExercise[], existing?: WorkoutTemplate) => {
+    const template: WorkoutTemplate = { id: existing?.id ?? newId(), name: name.trim(), exercises: exercises.map(toPlan) }
+    setStore((current) => ({ ...current, templates: existing ? current.templates.map((item) => item.id === existing.id ? template : item) : [...current.templates, template] }))
+    setEditor(null)
+    setTab('templates')
+  }
+
+  const renameTemplate = (template: WorkoutTemplate) => {
+    const name = window.prompt('Nový název tréninku', template.name)?.trim()
+    if (name) setStore((current) => ({ ...current, templates: current.templates.map((item) => item.id === template.id ? { ...item, name } : item) }))
+  }
+
+  const duplicateTemplate = (template: WorkoutTemplate) => setStore((current) => ({ ...current, templates: [...current.templates, { ...template, id: newId(), name: `${template.name} – kopie`, exercises: template.exercises.map((exercise) => ({ ...exercise, reps: [...exercise.reps] })) }] }))
+  const deleteTemplate = (template: WorkoutTemplate) => {
+    if (window.confirm(`Smazat trénink „${template.name}“?`)) setStore((current) => ({ ...current, templates: current.templates.filter((item) => item.id !== template.id) }))
   }
 
   return (
@@ -213,11 +314,12 @@ function App() {
         <a className="brand" href="#top" onClick={() => setTab('today')} aria-label="GYM – dnešní trénink">
           <span className="brand-mark">G</span><span>GYM</span>
         </a>
-        <button className="new-workout" onClick={() => setShowNew(true)}>＋ Nový workout</button>
+        <button className="new-workout" onClick={() => setEditor({ purpose: 'workout' })}>＋ Nový workout</button>
       </header>
 
       <nav className="tabs" aria-label="Hlavní navigace">
         <button className={tab === 'today' ? 'active' : ''} onClick={() => setTab('today')}>Dnes</button>
+        <button className={tab === 'templates' ? 'active' : ''} onClick={() => setTab('templates')}>Tréninky</button>
         <button className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')}>Historie</button>
       </nav>
 
@@ -230,15 +332,17 @@ function App() {
             updateExercise={updateExercise}
             lastResult={lastResult}
             finishWorkout={finishWorkout}
-            openNew={() => setShowNew(true)}
+            openNew={() => setEditor({ purpose: 'workout' })}
+            saveAsTemplate={saveActiveTemplate}
           />
         )}
+        {tab === 'templates' && <TemplatesView templates={store.templates} create={() => setEditor({ purpose: 'template' })} start={(template) => startWorkout(template.exercises.map(fromPlan))} edit={(template) => setEditor({ purpose: 'template', template })} rename={renameTemplate} duplicate={duplicateTemplate} remove={deleteTemplate} />}
         {tab === 'history' && <HistoryView history={store.history} />}
         {tab === 'sources' && <SourcesView />}
       </main>
 
       <footer><button className="text-button" onClick={() => setTab('sources')}>Zdroje obrázků</button></footer>
-      {showNew && <NewWorkoutModal close={() => setShowNew(false)} start={startWorkout} />}
+      {editor && <NewWorkoutModal close={() => setEditor(null)} purpose={editor.purpose} initialTemplate={editor.purpose === 'template' ? editor.template : undefined} submit={(name, exercises) => editor.purpose === 'workout' ? startWorkout(exercises) : saveTemplate(name, exercises, editor.template)} />}
     </div>
   )
 }
@@ -251,9 +355,10 @@ type TodayProps = {
   lastResult: (exerciseId: string) => WorkoutExercise | undefined
   finishWorkout: () => void
   openNew: () => void
+  saveAsTemplate: () => void
 }
 
-function TodayView({ workout, completedSets, totalSets, updateExercise, lastResult, finishWorkout, openNew }: TodayProps) {
+function TodayView({ workout, completedSets, totalSets, updateExercise, lastResult, finishWorkout, openNew, saveAsTemplate }: TodayProps) {
   if (!workout) return (
     <section className="empty-state">
       <span className="success-icon">✓</span>
@@ -282,7 +387,7 @@ function TodayView({ workout, completedSets, totalSets, updateExercise, lastResu
         })}
       </section>
 
-      <button className="finish-button" onClick={finishWorkout}>DOKONČIT TRÉNINK <span>→</span></button>
+      <div className="workout-actions"><button className="secondary-action" onClick={saveAsTemplate}>Uložit jako trénink</button><button className="finish-button" onClick={finishWorkout}>DOKONČIT TRÉNINK <span>→</span></button></div>
     </>
   )
 }
@@ -478,6 +583,26 @@ function HistoryView({ history }: { history: Workout[] }) {
   )
 }
 
+function TemplatesView({ templates: items, create, start, edit, rename, duplicate, remove }: { templates: WorkoutTemplate[]; create: () => void; start: (template: WorkoutTemplate) => void; edit: (template: WorkoutTemplate) => void; rename: (template: WorkoutTemplate) => void; duplicate: (template: WorkoutTemplate) => void; remove: (template: WorkoutTemplate) => void }) {
+  return (
+    <section className="templates-view">
+      <div className="section-heading"><div><p className="eyebrow">ULOŽENÉ PLÁNY</p><h1>Tréninky</h1></div><button className="primary compact" onClick={create}>＋ Nový trénink</button></div>
+      {!items.length && <div className="history-empty">Zatím tu není žádný uložený trénink.</div>}
+      <div className="template-list">
+        {items.map((template) => (
+          <article className="template-card" key={template.id}>
+            <div><h2>{template.name}</h2><p>{template.exercises.length} cviků</p></div>
+            <button className="template-start" onClick={() => start(template)}>Spustit</button>
+            <div className="template-tools">
+              <button onClick={() => edit(template)}>Upravit</button><button onClick={() => rename(template)}>Přejmenovat</button><button onClick={() => duplicate(template)}>Duplikovat</button><button className="danger" onClick={() => remove(template)}>Smazat</button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function SourcesView() {
   return (
     <section className="sources-view">
@@ -504,32 +629,49 @@ function SourcesView() {
   )
 }
 
-function NewWorkoutModal({ close, start }: { close: () => void; start: (exercises: WorkoutExercise[]) => void }) {
-  const [selected, setSelected] = useState<Record<string, boolean>>(() => Object.fromEntries(templates.map((template) => [template.id, false])))
-  const [settings, setSettings] = useState<Record<string, { sets: number; reps: number; minutes: number }>>(() => Object.fromEntries(templates.map((template) => [template.id, { sets: template.defaultSets ?? 3, reps: template.defaultReps ?? 10, minutes: template.defaultMinutes ?? 10 }])))
+function NewWorkoutModal({ close, purpose, initialTemplate, submit }: { close: () => void; purpose: 'workout' | 'template'; initialTemplate?: WorkoutTemplate; submit: (name: string, exercises: WorkoutExercise[]) => void }) {
+  const initialExercises = initialTemplate?.exercises.map(fromPlan) ?? []
+  const [name, setName] = useState(initialTemplate?.name ?? '')
+  const [selectedIds, setSelectedIds] = useState<string[]>(() => initialExercises.map((exercise) => exercise.exerciseId))
+  const [settings, setSettings] = useState<Record<string, { sets: number; reps: number; minutes: number }>>(() => Object.fromEntries(templates.map((template) => {
+    const initial = initialExercises.find((exercise) => exercise.exerciseId === template.id)
+    return [template.id, { sets: initial?.sets.length || template.defaultSets || 3, reps: initial?.sets[0]?.reps || template.defaultReps || 10, minutes: initial?.minutes || template.defaultMinutes || 10 }]
+  })))
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<ExerciseCategory | 'All'>('All')
-  const selectedCount = useMemo(() => Object.values(selected).filter(Boolean).length, [selected])
+  const selectedCount = selectedIds.length
   const filteredTemplates = useMemo(() => templates.filter((template) => {
     const matchesCategory = category === 'All' || template.category === category
     const matchesSearch = template.name.toLocaleLowerCase('cs').includes(search.trim().toLocaleLowerCase('cs'))
     return matchesCategory && matchesSearch
   }), [category, search])
 
+  const toggle = (id: string) => setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
+  const move = (id: string, direction: -1 | 1) => setSelectedIds((current) => {
+    const index = current.indexOf(id)
+    const next = index + direction
+    if (index < 0 || next < 0 || next >= current.length) return current
+    const result = [...current]; [result[index], result[next]] = [result[next], result[index]]
+    return result
+  })
+
   const create = () => {
-    const exercises = templates.filter((template) => selected[template.id]).map((template) => {
+    const exercises = selectedIds.flatMap((id) => {
+      const template = templates.find((item) => item.id === id)
+      if (!template) return []
       const config = settings[template.id]
-      return makeExercise(template, config.sets, config.reps, config.minutes)
+      return [makeExercise(template, config.sets, config.reps, config.minutes)]
     })
-    if (exercises.length) start(exercises)
+    if (exercises.length && (purpose === 'workout' || name.trim())) submit(name.trim(), exercises)
   }
 
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close() }}>
       <section className="modal" role="dialog" aria-modal="true" aria-labelledby="new-title">
         <div className="modal-handle" />
-        <header><div><p className="eyebrow">NOVÝ WORKOUT</p><h2 id="new-title">Vyber cviky</h2></div><button className="close" onClick={close} aria-label="Zavřít">×</button></header>
+        <header><div><p className="eyebrow">{purpose === 'template' ? 'ULOŽENÝ TRÉNINK' : 'NOVÝ WORKOUT'}</p><h2 id="new-title">{initialTemplate ? 'Upravit trénink' : 'Vyber cviky'}</h2></div><button className="close" onClick={close} aria-label="Zavřít">×</button></header>
         <div className="library-tools">
+          {purpose === 'template' && <label className="template-name"><span>Název tréninku</span><input type="text" maxLength={60} placeholder="Např. Pondělí – Full Body" value={name} onChange={(event) => setName(event.target.value)} /></label>}
           <label className="exercise-search"><span>⌕</span><input type="search" placeholder="Hledat cvik…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
           <div className="category-filters" aria-label="Kategorie cviků">
             {(['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Cardio'] as const).map((item) => <button key={item} className={category === item ? 'active' : ''} onClick={() => setCategory(item)}>{item === 'All' ? 'Vše' : item}</button>)}
@@ -538,20 +680,21 @@ function NewWorkoutModal({ close, start }: { close: () => void; start: (exercise
         </div>
         <div className="exercise-picker">
           {filteredTemplates.map((template) => (
-            <div className={`picker-item ${selected[template.id] ? 'selected' : ''}`} key={template.id}>
-              <button className="picker-toggle" onClick={() => setSelected((current) => ({ ...current, [template.id]: !current[template.id] }))}>
-                <span className="picker-check">{selected[template.id] ? '✓' : ''}</span><span><strong>{template.name}</strong><small>{template.category} · {template.kind === 'strength' ? 'opakování' : 'minuty'}</small></span>
+            <div className={`picker-item ${selectedIds.includes(template.id) ? 'selected' : ''}`} key={template.id}>
+              <button className="picker-toggle" onClick={() => toggle(template.id)}>
+                <span className="picker-check">{selectedIds.includes(template.id) ? selectedIds.indexOf(template.id) + 1 : ''}</span><span><strong>{template.name}</strong><small>{template.category} · {template.kind === 'strength' ? 'opakování' : 'minuty'}</small></span>
               </button>
-              {selected[template.id] && (
+              {selectedIds.includes(template.id) && (
                 <div className="picker-settings">
                   {template.kind === 'strength' ? <><NumberField label="Série" value={settings[template.id].sets} setValue={(sets) => setSettings((current) => ({ ...current, [template.id]: { ...current[template.id], sets } }))} /><NumberField label="Opakování" value={settings[template.id].reps} setValue={(reps) => setSettings((current) => ({ ...current, [template.id]: { ...current[template.id], reps } }))} /></> : <NumberField label="Minuty" value={settings[template.id].minutes} setValue={(minutes) => setSettings((current) => ({ ...current, [template.id]: { ...current[template.id], minutes } }))} />}
+                  <div className="order-controls"><span>Pořadí {selectedIds.indexOf(template.id) + 1}</span><button aria-label={`Posunout ${template.name} nahoru`} disabled={selectedIds.indexOf(template.id) === 0} onClick={() => move(template.id, -1)}>↑</button><button aria-label={`Posunout ${template.name} dolů`} disabled={selectedIds.indexOf(template.id) === selectedIds.length - 1} onClick={() => move(template.id, 1)}>↓</button></div>
                 </div>
               )}
             </div>
           ))}
           {!filteredTemplates.length && <p className="picker-empty">Žádný cvik neodpovídá filtru.</p>}
         </div>
-        <button className="primary modal-start" disabled={!selectedCount} onClick={create}>ZAČÍT WORKOUT · {selectedCount}</button>
+        <button className="primary modal-start" disabled={!selectedCount || (purpose === 'template' && !name.trim())} onClick={create}>{purpose === 'template' ? 'ULOŽIT TRÉNINK' : 'ZAČÍT WORKOUT'} · {selectedCount}</button>
       </section>
     </div>
   )
