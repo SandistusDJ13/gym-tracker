@@ -1,5 +1,5 @@
-const CACHE = 'gym-v1'
-const CORE = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg', '/assets/leg-press.png', '/assets/chest-press.svg', '/assets/lat-pulldown.svg', '/assets/cable-row.svg', '/assets/leg-curl.svg']
+const CACHE = 'gym-v4'
+const CORE = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg', '/assets/leg-press.svg', '/assets/chest-press.svg', '/assets/lat-pulldown.svg', '/assets/cable-row.svg', '/assets/leg-curl.svg']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(CORE)).then(() => self.skipWaiting()))

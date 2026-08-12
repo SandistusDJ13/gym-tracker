@@ -1,10 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520">
-  <rect width="800" height="520" fill="#ecece8"/>
-  <g fill="none" stroke="#22272b" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M165 420h470M270 315h250M300 315v105M490 315v105M270 315v-165"/>
-    <circle cx="350" cy="205" r="34"/>
-    <path d="M330 238l-42 77M345 252l80 63M425 315l80 45M505 360l-55 60M520 350l45 20"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" role="img" aria-labelledby="title desc">
+  <title id="title">Seated leg curl – start a konec</title><desc id="desc">Postava sedí ve stroji, začne s nohama vpředu a pokrčením kolen stáhne válec pod sedák.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0l10 5-10 5z" fill="#78a900"/></marker></defs>
+  <rect width="1000" height="560" rx="28" fill="#f2f3ef"/><path d="M500 40v480" stroke="#d5d9d1" stroke-width="3" stroke-dasharray="9 12"/>
+  <g font-family="Arial,sans-serif" font-weight="800"><text x="55" y="58" font-size="25" fill="#59615c">START</text><text x="555" y="58" font-size="25" fill="#59615c">KONEC</text></g>
+  <g fill="none" stroke="#252b29" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M80 455h390M155 190v210M155 400h155M185 400v55M295 400v55M145 190h25M350 320v135"/>
+    <circle cx="230" cy="225" r="34" fill="#ffd0ae"/><path d="M210 258l-35 142M210 295l85 105M295 400l125 0M420 400l18 20"/>
+    <path d="M580 455h390M655 190v210M655 400h155M685 400v55M795 400v55M645 190h25M850 320v135"/>
+    <circle cx="730" cy="225" r="34" fill="#ffd0ae"/><path d="M710 258l-35 142M710 295l85 105M795 400l70 45M865 445l40-65"/>
   </g>
-  <path d="M505 360l-42 50" stroke="#8dbf2b" stroke-width="12" stroke-linecap="round"/>
-  <text x="400" y="480" text-anchor="middle" fill="#70767b" font-family="Arial,sans-serif" font-size="24" font-weight="700">LEG CURL · NÁHLED</text>
+  <path d="M430 365c48 9 83 34 104 72" fill="none" stroke="#78a900" stroke-width="16" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <g fill="#78a900"><circle cx="420" cy="400" r="14"/><circle cx="865" cy="445" r="14"/></g>
+  <text x="500" y="535" text-anchor="middle" font-family="Arial,sans-serif" font-size="21" font-weight="700" fill="#59615c">PATY STÁHNI DOLŮ A POD SEDÁK</text>
 </svg>
