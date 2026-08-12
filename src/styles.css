@@ -36,18 +36,33 @@ h1, h2, p { overflow-wrap: anywhere; }
 .progress-track span { height: 100%; display: block; background: var(--lime); border-radius: inherit; transition: width .18s ease; }
 .exercise-list { display: grid; gap: 18px; }
 .exercise-card { background: var(--surface); border: 1px solid #242a31; border-radius: 22px; overflow: hidden; box-shadow: 0 16px 30px rgba(0,0,0,.13); }
-.exercise-image, .exercise-visual { width: 100%; height: clamp(230px, 66vw, 360px); display: block; background: #f2f3ef; }
+.exercise-image, .exercise-visual { width: 100%; height: clamp(250px, 72vw, 390px); display: block; background: #eef2ed; }
 .exercise-image { object-fit: contain; object-position: center; padding: 6px; }
-.exercise-visual { padding: 6px; }
+.exercise-visual { padding: 5px; }
 .exercise-visual svg { width: 100%; height: 100%; display: block; }
-.visual-divider { fill: none; stroke: #d1d6ce; stroke-width: 3; stroke-dasharray: 9 12; }
-.visual-label { fill: #59615c; font: 800 25px Arial, sans-serif; letter-spacing: 2px; }
-.visual-caption { fill: #59615c; font: 700 19px Arial, sans-serif; letter-spacing: .5px; }
-.visual-machine { fill: none; stroke: #727a75; stroke-width: 12; stroke-linecap: round; stroke-linejoin: round; }
-.visual-person { fill: none; stroke: #202725; stroke-width: 14; stroke-linecap: round; stroke-linejoin: round; }
-.visual-head { fill: #ffd0ae; }
-.visual-joint, .visual-arrow-fill { fill: #78a900; }
-.visual-arrow { fill: none; stroke: #78a900; stroke-width: 15; stroke-linecap: round; }
+.visual-panel { fill: #f9fbf7; stroke: #d9dfd7; stroke-width: 3; }
+.visual-label { fill: #303a35; font: 900 23px Arial, sans-serif; letter-spacing: 2px; }
+.visual-caption { fill: #4f5b55; font: 800 18px Arial, sans-serif; letter-spacing: .7px; }
+.visual-step { fill: #202a25; }
+.visual-step-end { fill: #8fc51f; }
+.visual-step-text { fill: #fff; font: 900 18px Arial, sans-serif; }
+.visual-step-text-end { fill: #17200e; }
+.visual-machine-new { fill: none; stroke: #8a948e; stroke-width: 11; stroke-linecap: round; stroke-linejoin: round; }
+.visual-pad { fill: #c9d0cb; stroke: #737e78; stroke-width: 6; }
+.visual-plate { fill: #68736d; stroke: #414b46; stroke-width: 7; }
+.visual-roller { fill: #c8d0ca; stroke: #737e78; stroke-width: 6; }
+.visual-weight { fill: #68736d; stroke: #414b46; stroke-width: 6; }
+.visual-pedal { fill: #c8d0ca; stroke: #737e78; stroke-width: 5; }
+.visual-handle { fill: #26312c; stroke: none; }
+.visual-torso-new { fill: none; stroke: #1f2924; stroke-width: 40; stroke-linecap: round; stroke-linejoin: round; }
+.visual-limb-new { fill: none; stroke: #303a35; stroke-width: 21; stroke-linecap: round; stroke-linejoin: round; }
+.visual-active-limb, .visual-active-body { fill: none; stroke: #79aa0b; stroke-width: 23; stroke-linecap: round; stroke-linejoin: round; }
+.visual-active-body { stroke-width: 40; }
+.visual-head-new { fill: #f1b98f; stroke: #1f2924; stroke-width: 8; }
+.visual-joint-new { fill: #1f2924; }
+.visual-arrow-fill { fill: #79aa0b; }
+.visual-arrow-halo { fill: none; stroke: #f9fbf7; stroke-width: 35; stroke-linecap: round; }
+.visual-arrow { fill: none; stroke: #79aa0b; stroke-width: 15; stroke-linecap: round; }
 .movement-guide { padding: 12px 16px 13px; border-top: 1px solid #d7dad4; background: #e8ebe4; color: #242a27; }
 .movement-guide p { margin: 0; font-size: 12px; line-height: 1.55; }
 .movement-guide strong { color: #18200f; }

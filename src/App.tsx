@@ -256,72 +256,114 @@ function ExerciseDiagram({ template }: { template: ExerciseTemplate }) {
   const markerId = `arrow-${template.id}`
   return (
     <div className="exercise-visual" role="img" aria-label={`Ilustrace startovní a konečné polohy cviku ${template.name}`}>
-      <svg viewBox="0 0 1000 560" aria-hidden="true">
+      <svg viewBox="0 0 1000 580" aria-hidden="true">
         <defs><marker id={markerId} markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0l10 5-10 5z" className="visual-arrow-fill" /></marker></defs>
-        <path d="M500 38v450" className="visual-divider" />
-        <text x="48" y="55" className="visual-label">START</text><text x="548" y="55" className="visual-label">KONEC</text>
-        <ExercisePose visual={template.visual} x={35} end={false} />
-        <ExercisePose visual={template.visual} x={535} end />
-        <path d="M445 275h110" className="visual-arrow" markerEnd={`url(#${markerId})`} />
-        <text x="500" y="530" textAnchor="middle" className="visual-caption">{template.name} · {template.category.toUpperCase()}</text>
+        <rect x="18" y="18" width="452" height="500" rx="28" className="visual-panel" /><rect x="530" y="18" width="452" height="500" rx="28" className="visual-panel" />
+        <text x="52" y="64" className="visual-label">START</text><text x="564" y="64" className="visual-label">KONEC</text>
+        <circle cx="425" cy="54" r="19" className="visual-step" /><text x="425" y="61" textAnchor="middle" className="visual-step-text">1</text>
+        <circle cx="937" cy="54" r="19" className="visual-step visual-step-end" /><text x="937" y="61" textAnchor="middle" className="visual-step-text visual-step-text-end">2</text>
+        <ExercisePose template={template} x={38} end={false} />
+        <ExercisePose template={template} x={550} end />
+        <path d="M458 270h84" className="visual-arrow-halo" /><path d="M458 270h84" className="visual-arrow" markerEnd={`url(#${markerId})`} />
+        <text x="500" y="558" textAnchor="middle" className="visual-caption">{template.name} · {template.category.toUpperCase()}</text>
       </svg>
     </div>
   )
 }
 
-function ExercisePose({ visual, x, end }: { visual: ExerciseVisual; x: number; end: boolean }) {
-  const standing = ['fly', 'pushdown', 'abduction', 'calf', 'squat', 'treadmill', 'elliptical'].includes(visual)
-  const lying = ['lying-curl', 'hinge', 'crunch'].includes(visual)
+type VisualPoint = [number, number]
+type VisualPose = { head: VisualPoint; shoulder: VisualPoint; hip: VisualPoint; arms: [VisualPoint[], VisualPoint[]]; legs: [VisualPoint[], VisualPoint[]]; active: 'arms' | 'legs' | 'torso' }
+
+const points = (items: VisualPoint[]) => items.map((item) => item.join(',')).join(' ')
+
+function poseFor(template: ExerciseTemplate, end: boolean): VisualPose {
+  const seated: VisualPose = { head: [185, 125], shoulder: [185, 182], hip: [185, 310], arms: [[[185, 190], [145, 245], [125, 300]], [[185, 190], [225, 245], [245, 300]]], legs: [[[185, 310], [135, 375], [115, 445]], [[185, 310], [275, 350], [310, 430]]], active: 'arms' }
+  const standing: VisualPose = { head: [205, 105], shoulder: [205, 165], hip: [205, 310], arms: [[[205, 175], [155, 235], [135, 300]], [[205, 175], [255, 235], [275, 300]]], legs: [[[205, 310], [165, 375], [145, 445]], [[205, 310], [245, 375], [265, 445]]], active: 'arms' }
+  const lying: VisualPose = { head: [95, 260], shoulder: [150, 278], hip: [285, 310], arms: [[[150, 280], [195, 325], [245, 330]], [[150, 275], [205, 260], [255, 265]]], legs: [[[285, 310], [345, 325], [405, 330]], [[285, 315], [345, 340], [400, 350]]], active: 'legs' }
+  const standingPose = ['pushdown', 'squat', 'treadmill', 'elliptical'].includes(template.visual) || template.id === 'cable-crossover' || template.id === 'standing-hip-abduction'
+  const lyingPose = template.visual === 'lying-curl' || template.id === 'hyperextension' || template.id === 'decline-crunch'
+  let pose = standingPose ? standing : lyingPose ? lying : seated
+  pose = { ...pose, arms: [[...pose.arms[0]], [...pose.arms[1]]], legs: [[...pose.legs[0]], [...pose.legs[1]]] }
+
+  if (template.visual === 'press') {
+    const incline = template.id === 'incline-chest-press'
+    pose.arms = end ? [[[185, 190], [270, incline ? 145 : 200], [355, incline ? 120 : 210]], [[185, 205], [270, incline ? 165 : 225], [355, incline ? 145 : 230]]] : [[[185, 190], [235, 205], [270, incline ? 170 : 215]], [[185, 205], [235, 225], [270, incline ? 190 : 235]]]
+  }
+  if (template.visual === 'fly') {
+    const cable = template.id === 'cable-crossover'
+    pose = cable ? pose : seated
+    pose.arms = end ? [[[pose.shoulder[0], pose.shoulder[1]], [275, 205], [330, 245]], [[pose.shoulder[0], pose.shoulder[1] + 12], [275, 235], [330, 250]]] : [[[pose.shoulder[0], pose.shoulder[1]], [110, 165], [60, 210]], [[pose.shoulder[0], pose.shoulder[1] + 12], [300, 165], [350, 210]]]
+  }
+  if (template.visual === 'pulldown') pose.arms = end ? [[[185, 185], [130, 230], [115, 275]], [[185, 185], [240, 230], [255, 275]]] : [[[185, 185], [135, 115], [105, 70]], [[185, 185], [235, 115], [265, 70]]]
+  if (template.visual === 'pullover') pose.arms = end ? [[[185, 185], [230, 245], [260, 320]], [[185, 195], [245, 250], [280, 320]]] : [[[185, 185], [245, 115], [285, 80]], [[185, 195], [260, 125], [300, 90]]]
+  if (template.visual === 'row') pose.arms = end ? [[[185, 190], [145, 225], [130, 255]], [[185, 205], [150, 240], [130, 255]]] : [[[185, 190], [270, 220], [345, 245]], [[185, 205], [270, 235], [345, 245]]]
+  if (template.visual === 'overhead') pose.arms = end ? [[[185, 185], [150, 110], [140, 55]], [[185, 185], [220, 110], [230, 55]]] : [[[185, 185], [140, 165], [120, 185]], [[185, 185], [230, 165], [250, 185]]]
+  if (template.visual === 'lateral') pose.arms = end ? [[[185, 185], [105, 165], [40, 165]], [[185, 185], [265, 165], [330, 165]]] : [[[185, 185], [155, 260], [145, 320]], [[185, 185], [215, 260], [225, 320]]]
+  if (template.visual === 'curl') pose.arms = end ? [[[185, 190], [135, 245], [155, 155]], [[185, 200], [235, 245], [215, 155]]] : [[[185, 190], [135, 250], [115, 330]], [[185, 200], [235, 250], [255, 330]]]
+  if (template.visual === 'pushdown') pose.arms = end ? [[[205, 175], [175, 245], [170, 335]], [[205, 175], [235, 245], [240, 335]]] : [[[205, 175], [165, 215], [185, 260]], [[205, 175], [245, 215], [225, 260]]]
+  if (template.visual === 'dip') { pose.shoulder = [185, end ? 160 : 220]; pose.head = [185, end ? 100 : 160]; pose.hip = [185, end ? 285 : 345]; pose.arms = [[[185, pose.shoulder[1]], [135, 250], [125, 310]], [[185, pose.shoulder[1]], [235, 250], [245, 310]]] }
+  if (template.visual === 'leg-extension') { pose.active = 'legs'; pose.legs = end ? [[[185, 310], [250, 350], [365, 350]], [[185, 320], [255, 365], [370, 365]]] : [[[185, 310], [270, 340], [270, 440]], [[185, 320], [285, 355], [285, 445]]] }
+  if (template.visual === 'leg-curl') { pose.active = 'legs'; pose.legs = end ? [[[185, 310], [270, 345], [225, 440]], [[185, 320], [285, 360], [240, 448]]] : [[[185, 310], [270, 345], [370, 360]], [[185, 320], [285, 360], [380, 375]]] }
+  if (template.visual === 'lying-curl') pose.legs = end ? [[[285, 310], [350, 320], [330, 215]], [[285, 320], [365, 335], [345, 225]]] : lying.legs
+  if (template.visual === 'leg-press') { pose = { ...seated, head: [120, 285], shoulder: [160, 315], hip: [230, 360], active: 'legs', arms: [[[160, 320], [205, 350], [225, 375]], [[160, 310], [205, 330], [225, 350]]], legs: end ? [[[230, 360], [285, 350], [370, 205]], [[230, 370], [300, 365], [385, 220]]] : [[[230, 360], [300, 365], [335, 280]], [[230, 370], [315, 380], [350, 295]]] } }
+  if (template.visual === 'abduction') {
+    pose.active = 'legs'
+    const closed: [VisualPoint[], VisualPoint[]] = [[[pose.hip[0], pose.hip[1]], [185, 375], [180, 445]], [[pose.hip[0], pose.hip[1]], [225, 375], [230, 445]]]
+    const open: [VisualPoint[], VisualPoint[]] = [[[pose.hip[0], pose.hip[1]], [105, 365], [70, 435]], [[pose.hip[0], pose.hip[1]], [305, 365], [340, 435]]]
+    pose.legs = template.id === 'hip-adduction' ? (end ? closed : open) : (end ? open : closed)
+  }
+  if (template.visual === 'calf') { pose.active = 'legs'; pose.legs = end ? [[[205, 310], [175, 385], [290, 405]], [[205, 310], [235, 385], [350, 405]]] : [[[205, 310], [175, 385], [290, 430]], [[205, 310], [235, 385], [350, 430]]] }
+  if (template.visual === 'squat') { pose.active = 'legs'; if (!end) pose = standing; else { pose.head = [205, 185]; pose.shoulder = [205, 245]; pose.hip = [205, 350]; pose.legs = [[[205, 350], [135, 365], [145, 445]], [[205, 350], [275, 365], [265, 445]]] } }
+  if (template.visual === 'hinge') {
+    pose.active = 'torso'
+    if (template.id === 'lower-back-machine') { pose = { ...pose, head: end ? [185, 120] : [245, 205], shoulder: end ? [185, 180] : [225, 255], hip: [185, 310], active: 'torso' } }
+    else { pose.head = end ? [105, 250] : [145, 320]; pose.shoulder = end ? [155, 275] : [200, 340]; pose.hip = [285, 310] }
+    pose.arms = [[[pose.shoulder[0], pose.shoulder[1]], [225, 340], [250, 360]], [[pose.shoulder[0], pose.shoulder[1] + 8], [235, 350], [260, 370]]]
+  }
+  if (template.visual === 'crunch') {
+    pose.active = 'torso'
+    if (template.id === 'abs-machine') { pose = { ...pose, head: end ? [235, 210] : [185, 120], shoulder: end ? [215, 260] : [185, 180], hip: [185, 310], active: 'torso' } }
+    else { pose.head = end ? [155, 290] : [95, 250]; pose.shoulder = end ? [205, 315] : [150, 278]; pose.hip = [285, 310] }
+  }
+  if (template.visual === 'rotation') pose.arms = end ? [[[185, 190], [115, 215], [80, 240]], [[185, 205], [115, 230], [80, 250]]] : [[[185, 190], [255, 215], [330, 240]], [[185, 205], [255, 230], [330, 250]]]
+  if (template.visual === 'bike') { pose.active = 'legs'; pose.arms = [[[185, 185], [255, 210], [300, 250]], [[185, 200], [260, 225], [300, 250]]]; pose.legs = end ? [[[185, 310], [275, 345], [240, 430]], [[185, 310], [125, 375], [175, 420]]] : [[[185, 310], [245, 390], [315, 370]], [[185, 310], [135, 350], [175, 420]]] }
+  if (template.visual === 'treadmill') { pose.active = 'legs'; pose.legs = end ? [[[205, 310], [145, 380], [105, 445]], [[205, 310], [285, 365], [335, 420]]] : [[[205, 310], [165, 380], [145, 445]], [[205, 310], [245, 380], [265, 445]]] }
+  if (template.visual === 'elliptical') { pose.active = 'legs'; pose.arms = end ? [[[205, 175], [145, 115], [115, 75]], [[205, 175], [255, 255], [285, 330]]] : [[[205, 175], [145, 255], [115, 330]], [[205, 175], [255, 115], [285, 75]]]; pose.legs = end ? [[[205, 310], [145, 380], [95, 440]], [[205, 310], [285, 365], [345, 410]]] : [[[205, 310], [135, 365], [75, 410]], [[205, 310], [275, 380], [325, 440]]] }
+  return pose
+}
+
+function ExercisePose({ template, x, end }: { template: ExerciseTemplate; x: number; end: boolean }) {
+  const pose = poseFor(template, end)
+  const visual = template.visual
   const cardio = visual === 'bike' || visual === 'treadmill' || visual === 'elliptical'
-  const torso = lying ? 'M155 255L285 285' : standing ? 'M205 165L205 315' : 'M190 170L190 315'
-  let arms = standing ? 'M205 205L150 255M205 205L260 255' : 'M190 210L135 260M190 210L245 260'
-  let legs = standing ? 'M205 315L155 430M205 315L255 430' : 'M190 315L145 405M190 315L285 405'
-
-  if (visual === 'press') arms = end ? 'M190 215L345 215M190 225L345 225' : 'M190 215L265 235M190 225L265 205'
-  if (visual === 'fly') arms = end ? 'M205 205L330 245M205 205L330 255' : 'M205 205L105 145M205 205L305 145'
-  if (visual === 'pulldown' || visual === 'pullover') arms = end ? 'M190 210L125 250M190 210L255 250' : 'M190 210L120 92M190 210L260 92'
-  if (visual === 'row') arms = end ? 'M190 215L145 245M190 225L145 245' : 'M190 215L340 240M190 225L340 240'
-  if (visual === 'overhead') arms = end ? 'M190 210L145 82M190 210L235 82' : 'M190 210L135 175M190 210L245 175'
-  if (visual === 'lateral') arms = end ? 'M190 215L80 160M190 215L300 160' : 'M190 215L145 305M190 215L235 305'
-  if (visual === 'curl') arms = end ? 'M190 220L130 165M190 220L250 165' : 'M190 220L130 305M190 220L250 305'
-  if (visual === 'pushdown') arms = end ? 'M205 205L180 330M205 205L230 330' : 'M205 205L165 250M205 205L245 250'
-  if (visual === 'dip') arms = end ? 'M190 210L130 300M190 210L250 300' : 'M190 210L145 250M190 210L235 250'
-  if (visual === 'leg-extension') legs = end ? 'M190 315L205 355L350 355' : 'M190 315L275 335L275 430'
-  if (visual === 'leg-curl') legs = end ? 'M190 315L275 345L225 430' : 'M190 315L275 345L360 365'
-  if (visual === 'lying-curl') legs = end ? 'M285 285L345 300L315 205' : 'M285 285L350 300L405 305'
-  if (visual === 'leg-press') legs = end ? 'M190 315L265 330L365 195' : 'M190 315L275 340L320 245'
-  if (visual === 'abduction') legs = end ? 'M205 315L105 420M205 315L305 420' : 'M205 315L180 425M205 315L230 425'
-  if (visual === 'calf') legs = end ? 'M205 315L180 400L285 385M205 315L230 400L335 385' : 'M205 315L180 400L285 420M205 315L230 400L335 420'
-  if (visual === 'squat') legs = end ? 'M205 315L160 430M205 315L250 430' : 'M205 315L135 355L165 430M205 315L275 355L245 430'
-  if (visual === 'hinge') legs = 'M285 285L350 350M285 285L245 410'
-  if (visual === 'crunch') arms = end ? 'M175 250L120 285M175 250L230 285' : 'M155 255L105 195M155 255L205 195'
-  if (visual === 'rotation') arms = end ? 'M190 215L95 235M190 225L95 245' : 'M190 215L285 235M190 225L285 245'
-  if (visual === 'bike') { arms = 'M190 210L290 245M190 220L290 245'; legs = end ? 'M190 315L270 350L235 430M190 315L125 370L175 420' : 'M190 315L250 395L320 370M190 315L135 345L175 420' }
-  if (visual === 'treadmill') { arms = 'M205 210L155 275M205 210L255 275'; legs = end ? 'M205 315L140 430M205 315L300 405' : 'M205 315L165 430M205 315L260 430' }
-  if (visual === 'elliptical') { arms = end ? 'M205 210L130 105M205 210L280 320' : 'M205 210L130 320M205 210L280 105'; legs = end ? 'M205 315L135 430M205 315L315 405' : 'M205 315L125 405M205 315L305 430' }
-
   return (
     <g transform={`translate(${x} 20)`}>
-      <g className="visual-machine">
-        {!cardio && <><path d="M45 445H405" /><path d="M105 120V445M370 120V445" /></>}
-        {['press', 'fly', 'overhead', 'lateral', 'curl', 'leg-extension', 'leg-curl', 'rotation'].includes(visual) && <><path d="M125 340H285M150 340V445M260 340V445" /><path d="M130 135V340" /></>}
-        {['pulldown', 'pullover'].includes(visual) && <path d="M95 95H380M120 95V445M355 95V445M120 115H355" />}
-        {visual === 'row' && <path d="M355 115V445M335 130H375M355 130L320 245M120 340H270" />}
-        {visual === 'pushdown' && <path d="M340 95V445M320 110H360M340 110L240 250" />}
-        {visual === 'dip' && <path d="M105 285H300M130 285V445M275 285V445" />}
-        {visual === 'leg-press' && <path d="M105 405L225 250M275 340L370 125M340 105L405 170" />}
-        {visual === 'lying-curl' && <path d="M90 305H330M120 305V445M300 305V445M350 250V445" />}
-        {visual === 'hinge' && <path d="M95 335L205 275M205 275L275 340M110 335V445M260 340V445" />}
-        {visual === 'abduction' && <path d="M100 335H300M135 335V445M275 335V445" />}
-        {visual === 'calf' && <path d="M105 405H350M125 405V445M330 405V445" />}
-        {visual === 'crunch' && <path d="M75 345L305 290M95 340V445M285 295V445" />}
-        {visual === 'squat' && <path d="M80 80V445M330 80V445M60 445H350M90 150H320" />}
-        {visual === 'treadmill' && <path d="M70 420H360L405 445H90Z M330 420V255H390" />}
-        {visual === 'bike' && <><circle cx="225" cy="395" r="48" /><path d="M225 395L175 315H285L225 395M175 315L145 245M285 315L320 270" /></>}
-        {visual === 'elliptical' && <path d="M75 425H360M135 405L295 370M135 405L95 190M295 370L330 130" />}
+      <g className="visual-machine-new">
+        {!cardio && <path d="M35 455H405" />}
+        {(['press', 'overhead', 'lateral', 'curl', 'leg-extension', 'leg-curl', 'rotation'].includes(visual) || (visual === 'fly' && template.id !== 'cable-crossover')) && <><path d="M110 325H285M135 325V455M265 325V455" /><rect x="105" y="115" width="38" height="215" rx="16" className="visual-pad" /></>}
+        {template.id === 'cable-crossover' && <><path d="M55 70V455M355 70V455M35 455H375M55 95H355" /><path d="M55 105L125 200M355 105L285 200" /><circle cx="125" cy="200" r="9" className="visual-handle" /><circle cx="285" cy="200" r="9" className="visual-handle" /></>}
+        {['pulldown', 'pullover'].includes(visual) && <><path d="M75 80H385M95 80V455M365 80V455" /><rect x="125" y="330" width="150" height="28" rx="14" className="visual-pad" /><path d="M105 76H275" /></>}
+        {visual === 'row' && <><path d="M355 95V455M335 105H375M355 105L335 245" /><rect x="115" y="325" width="155" height="28" rx="14" className="visual-pad" /><circle cx="335" cy="245" r="9" className="visual-handle" /></>}
+        {visual === 'pushdown' && <><path d="M345 75V455M325 88H365M345 88L260 230" /><circle cx="260" cy="230" r="10" className="visual-handle" /></>}
+        {visual === 'dip' && <><path d="M90 300H310M110 300V455M290 300V455" /><rect x="100" y="285" width="50" height="22" rx="11" className="visual-pad" /><rect x="250" y="285" width="50" height="22" rx="11" className="visual-pad" /></>}
+        {visual === 'leg-press' && <><path d="M80 420L230 265M260 365L370 120" /><rect x="78" y="385" width="155" height="38" rx="15" transform="rotate(-46 78 385)" className="visual-pad" /><rect x="335" y="92" width="72" height="105" rx="10" transform="rotate(39 335 92)" className="visual-plate" /></>}
+        {visual === 'lying-curl' && <><rect x="75" y="292" width="270" height="34" rx="16" className="visual-pad" /><path d="M100 325V455M315 325V455M365 250V455" /><circle cx="378" cy="315" r="19" className="visual-roller" /></>}
+        {visual === 'hinge' && (template.id === 'lower-back-machine' ? <><rect x="105" y="325" width="185" height="30" rx="15" className="visual-pad" /><rect x="105" y="120" width="38" height="210" rx="16" className="visual-pad" /><path d="M130 355V455M270 355V455" /><circle cx="250" cy="235" r="22" className="visual-roller" /></> : <><path d="M75 360L205 285M205 285L295 350M95 350V455M280 350V455" /><rect x="155" y="285" width="85" height="28" rx="14" transform="rotate(-28 155 285)" className="visual-pad" /></>)}
+        {visual === 'abduction' && (template.id === 'standing-hip-abduction' ? <><path d="M340 75V455M320 88H360M340 88L275 305" /><circle cx="275" cy="305" r="13" className="visual-roller" /><path d="M80 455H380" /></> : <><rect x="105" y="325" width="200" height="30" rx="15" className="visual-pad" /><path d="M130 355V455M280 355V455" /><circle cx="145" cy="365" r="18" className="visual-roller" /><circle cx="265" cy="365" r="18" className="visual-roller" /></>)}
+        {visual === 'calf' && <><path d="M85 430H360M110 430V455M340 430V455" /><rect x="120" y="290" width="170" height="28" rx="14" className="visual-pad" /></>}
+        {visual === 'crunch' && (template.id === 'abs-machine' ? <><rect x="105" y="325" width="190" height="30" rx="15" className="visual-pad" /><rect x="105" y="120" width="38" height="210" rx="16" className="visual-pad" /><path d="M130 355V455M275 355V455" /><circle cx="225" cy="210" r="24" className="visual-roller" /></> : <><rect x="65" y="325" width="270" height="34" rx="16" transform="rotate(-12 65 325)" className="visual-pad" /><path d="M90 355V455M310 310V455" /></>)}
+        {visual === 'squat' && <><path d="M65 60V455M345 60V455M45 455H365M75 145H335" /><circle cx="85" cy="145" r="20" className="visual-weight" /><circle cx="325" cy="145" r="20" className="visual-weight" /></>}
+        {visual === 'treadmill' && <><path d="M45 420H350L405 455H75Z M330 420V245H395" /><path d="M345 270H395" /></>}
+        {visual === 'bike' && <><circle cx="225" cy="395" r="55" /><path d="M225 395L165 305H290L225 395M165 305L130 230M290 305L330 255" /><circle cx="225" cy="395" r="8" className="visual-handle" /></>}
+        {visual === 'elliptical' && <><path d="M45 430H375M120 415L305 375M120 415L80 175M305 375L345 105" /><ellipse cx="110" cy="420" rx="55" ry="13" className="visual-pedal" /><ellipse cx="310" cy="390" rx="55" ry="13" className="visual-pedal" /></>}
       </g>
-      <g className="visual-person"><circle cx={lying ? 135 : standing ? 205 : 190} cy={lying ? 235 : 125} r="30" className="visual-head" /><path d={torso} /><path d={arms} /><path d={legs} /></g>
-      <circle cx={end ? 330 : 115} cy={end ? 250 : 245} r="8" className="visual-joint" />
+      <g className="visual-human-new">
+        <polyline points={points([pose.shoulder, pose.hip])} className={pose.active === 'torso' ? 'visual-active-body' : 'visual-torso-new'} />
+        {pose.arms.map((arm, index) => <polyline key={`arm-${index}`} points={points(arm)} className={pose.active === 'arms' ? 'visual-active-limb' : 'visual-limb-new'} />)}
+        {pose.legs.map((leg, index) => <polyline key={`leg-${index}`} points={points(leg)} className={pose.active === 'legs' ? 'visual-active-limb' : 'visual-limb-new'} />)}
+        <circle cx={pose.head[0]} cy={pose.head[1]} r="28" className="visual-head-new" />
+        <circle cx={pose.shoulder[0]} cy={pose.shoulder[1]} r="9" className="visual-joint-new" /><circle cx={pose.hip[0]} cy={pose.hip[1]} r="9" className="visual-joint-new" />
+      </g>
     </g>
   )
 }
@@ -329,7 +371,7 @@ function ExercisePose({ visual, x, end }: { visual: ExerciseVisual; x: number; e
 function ExerciseCard({ template, exercise, previous, update }: { template: ExerciseTemplate; exercise: WorkoutExercise; previous?: WorkoutExercise; update: (change: (exercise: WorkoutExercise) => WorkoutExercise) => void }) {
   return (
     <article className={`exercise-card ${template.kind === 'cardio' ? 'cardio-card' : ''}`}>
-      {template.image ? <img className="exercise-image" src={template.image} alt={`Start, směr pohybu a konec cviku ${template.name}`} /> : <ExerciseDiagram template={template} />}
+      <ExerciseDiagram template={template} />
       <div className="movement-guide">
         <p><strong>Start:</strong> {template.movement.start}</p>
         <p><strong>Pohyb:</strong> {template.movement.move}</p>
