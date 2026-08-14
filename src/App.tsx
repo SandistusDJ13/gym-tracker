@@ -1,15 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
 
 type ExerciseKind = 'strength' | 'cardio'
-type ExerciseCategory = 'Chest' | 'Back' | 'Legs' | 'Shoulders' | 'Arms' | 'Core' | 'Cardio'
+type ExerciseType = 'weighted_reps' | 'bodyweight_reps' | 'timed' | 'hold' | 'duration' | 'per_side'
+type ExerciseCategory = 'Chest' | 'Back' | 'Legs' | 'Glutes' | 'Shoulders' | 'Arms' | 'Core' | 'Bodyweight' | 'Yoga' | 'Mobility' | 'Stretching' | 'Cardio'
 type ExerciseVisual = 'press' | 'fly' | 'pulldown' | 'row' | 'pullover' | 'leg-press' | 'leg-extension' | 'leg-curl' | 'lying-curl' | 'hinge' | 'overhead' | 'lateral' | 'curl' | 'pushdown' | 'dip' | 'abduction' | 'calf' | 'crunch' | 'rotation' | 'squat' | 'treadmill' | 'bike' | 'elliptical'
 
 type ExerciseTemplate = {
   id: string
   name: string
   kind: ExerciseKind
+  exerciseType: ExerciseType
   category: ExerciseCategory
+  secondaryCategory?: ExerciseCategory
+  equipment?: 'machine' | 'barbell' | 'dumbbell' | 'cable' | 'bodyweight' | 'cardio'
   visual: ExerciseVisual
+  sourceId?: string
   image?: string
   instructions: string[]
   defaultSets?: number
@@ -37,17 +42,27 @@ type Workout = {
 
 type WorkoutPlanExercise = { exerciseId: string; reps: number[]; minutes?: number; note?: string }
 type WorkoutTemplate = { id: string; name: string; exercises: WorkoutPlanExercise[] }
+type PresetAudience = 'man' | 'woman' | 'general'
+type WorkoutPreset = WorkoutTemplate & { audience: PresetAudience; focus: string; minutes: number }
 type Store = { active: Workout | null; history: Workout[]; templates: WorkoutTemplate[] }
-type Tab = 'today' | 'templates' | 'history' | 'sources'
+type Tab = 'today' | 'templates' | 'girl' | 'history' | 'sources'
 
 const STORAGE_KEY = 'gym-store-v1'
 
 const strength = (id: string, name: string, category: ExerciseCategory, visual: ExerciseVisual, instructions: string[], start: string, move: string, end: string, image?: string): ExerciseTemplate => ({
-  id, name, category, visual, kind: 'strength', image, instructions, defaultSets: 3, defaultReps: 10, movement: { start, move, end },
+  id, name, category, visual, kind: 'strength', exerciseType: 'weighted_reps', equipment: 'machine', image, instructions, defaultSets: 3, defaultReps: 10, movement: { start, move, end },
 })
 
 const duration = (id: string, name: string, visual: ExerciseVisual, instructions: string[], start: string, move: string, end: string, minutes: number): ExerciseTemplate => ({
-  id, name, category: 'Cardio', visual, kind: 'cardio', instructions, defaultMinutes: minutes, movement: { start, move, end },
+  id, name, category: 'Cardio', visual, kind: 'cardio', exerciseType: 'duration', equipment: 'cardio', instructions, defaultMinutes: minutes, movement: { start, move, end },
+})
+
+const bankExercise = (id: string, name: string, category: ExerciseCategory, visual: ExerciseVisual, exerciseType: ExerciseType, equipment: ExerciseTemplate['equipment'], sourceId: string, start: string, move: string, end: string, secondaryCategory?: ExerciseCategory): ExerciseTemplate => ({
+  id, name, category, secondaryCategory, visual, exerciseType, equipment, sourceId, kind: 'strength',
+  instructions: exerciseType === 'hold' ? ['Dýchej plynule', 'Drž bez bolesti', 'Povol ramena'] : ['Pohyb kontroluj', 'Drž pevný střed těla', 'Dýchej plynule'],
+  defaultSets: exerciseType === 'hold' ? 2 : 3,
+  defaultReps: exerciseType === 'timed' || exerciseType === 'hold' ? 30 : 10,
+  movement: { start, move, end },
 })
 
 const templates: ExerciseTemplate[] = [
@@ -94,6 +109,68 @@ const templates: ExerciseTemplate[] = [
   strength('overhead-triceps-extension', 'OVERHEAD TRICEPS EXTENSION', 'Arms', 'overhead', ['Lokty drž u hlavy', 'Břicho zpevni', 'Hýbou se jen předloktí'], 'Stůj zády ke kladce, lokty pokrčené nad hlavou.', 'Narovnej lokty proti odporu.', 'Paže nahoře téměř rovné.'),
   strength('plank', 'PLANK', 'Core', 'crunch', ['Lokty pod rameny', 'Tělo v jedné linii', 'Břicho pevné'], 'Klekni a opři předloktí o zem.', 'Natáhni nohy a zpevni celé tělo.', 'Drž rovnou linii od hlavy k patám.'),
   strength('hanging-leg-raise', 'HANGING LEG RAISE', 'Core', 'crunch', ['Ramena drž dole', 'Nehoupej se', 'Pánev podsazuj'], 'Vis na hrazdě, nohy volně dolů.', 'Zvedni kolena nebo nohy před tělo.', 'Stehna nahoře, břicho stažené.'),
+  bankExercise('incline-dumbbell-press', 'INCLINE DUMBBELL PRESS', 'Chest', 'press', 'weighted_reps', 'dumbbell', 'Incline_Dumbbell_Press', 'Lehni si na šikmou lavici, činky u ramen.', 'Vytlač činky šikmo vzhůru.', 'Činky nad horní částí hrudníku.'),
+  bankExercise('dumbbell-fly', 'DUMBBELL FLY', 'Chest', 'fly', 'weighted_reps', 'dumbbell', 'Dumbbell_Flyes', 'Lehni si, činky nad hrudníkem.', 'Rozevři paže obloukem do stran.', 'Lokty vedle hrudníku, paže měkké.'),
+  bankExercise('incline-dumbbell-fly', 'INCLINE DUMBBELL FLY', 'Chest', 'fly', 'weighted_reps', 'dumbbell', 'Incline_Dumbbell_Flyes', 'Lehni si šikmo, činky nad hrudníkem.', 'Rozevři paže kontrolovaně.', 'Činky po stranách horní části hrudníku.'),
+  bankExercise('dumbbell-pullover', 'DUMBBELL PULLOVER', 'Chest', 'pullover', 'weighted_reps', 'dumbbell', 'Bent-Arm_Dumbbell_Pullover', 'Lehni si, činku drž nad hrudníkem.', 'Spusť činku obloukem za hlavu.', 'Paže za hlavou, žebra pod kontrolou.', 'Back'),
+  bankExercise('barbell-row', 'BARBELL ROW', 'Back', 'row', 'weighted_reps', 'barbell', 'Bent_Over_Barbell_Row', 'Stůj v předklonu, osa pod koleny.', 'Přitáhni osu k břichu.', 'Lokty za trupem, lopatky u sebe.'),
+  bankExercise('conventional-deadlift', 'CONVENTIONAL DEADLIFT', 'Back', 'hinge', 'weighted_reps', 'barbell', 'Barbell_Deadlift', 'Stůj u osy, boky vzadu.', 'Zvedni osu současně nohama a boky.', 'Stůj rovně s osou u stehen.', 'Legs'),
+  bankExercise('dumbbell-shoulder-press', 'DUMBBELL SHOULDER PRESS', 'Shoulders', 'overhead', 'weighted_reps', 'dumbbell', 'Dumbbell_Shoulder_Press', 'Sedni nebo stůj, činky vedle ramen.', 'Vytlač činky nad hlavu.', 'Paže nahoře téměř rovné.'),
+  bankExercise('barbell-overhead-press', 'BARBELL OVERHEAD PRESS', 'Shoulders', 'overhead', 'weighted_reps', 'barbell', 'Barbell_Shoulder_Press', 'Stůj, osa na horní části hrudníku.', 'Vytlač osu svisle nad hlavu.', 'Osa nad rameny, trup pevný.'),
+  bankExercise('arnold-press', 'ARNOLD PRESS', 'Shoulders', 'overhead', 'weighted_reps', 'dumbbell', 'Arnold_Dumbbell_Press', 'Sedni, činky před rameny dlaněmi k sobě.', 'Otáčej dlaně ven a vytlač činky vzhůru.', 'Paže nahoře, dlaně vpřed.'),
+  bankExercise('dumbbell-front-raise', 'DUMBBELL FRONT RAISE', 'Shoulders', 'lateral', 'weighted_reps', 'dumbbell', 'Front_Dumbbell_Raise', 'Stůj, činky před stehny.', 'Zvedni paže před tělo.', 'Činky ve výši ramen.'),
+  bankExercise('cable-lateral-raise', 'CABLE LATERAL RAISE', 'Shoulders', 'lateral', 'weighted_reps', 'cable', 'Cable_Seated_Lateral_Raise', 'Stůj bokem ke spodní kladce.', 'Zvedni paži do strany.', 'Ruka ve výši ramene.'),
+  bankExercise('face-pull', 'FACE PULL', 'Shoulders', 'row', 'weighted_reps', 'cable', 'Face_Pull', 'Stůj proti kladce, paže natažené.', 'Táhni lano k obličeji.', 'Lokty široce, lopatky u sebe.', 'Back'),
+  bankExercise('straight-arm-pulldown', 'STRAIGHT-ARM PULLDOWN', 'Back', 'pulldown', 'weighted_reps', 'cable', 'Straight-Arm_Pulldown', 'Stůj u horní kladky, paže vpřed.', 'Táhni madlo rovnými pažemi dolů.', 'Ruce u stehen, hrudník nahoře.'),
+  bankExercise('single-arm-cable-row', 'SINGLE-ARM CABLE ROW', 'Back', 'row', 'per_side', 'cable', 'Seated_One-arm_Cable_Pulley_Rows', 'Stůj proti kladce s jednou rukou vpřed.', 'Přitáhni loket k boku.', 'Loket za trupem, pánev rovně.'),
+  bankExercise('cable-chest-fly', 'CABLE CHEST FLY', 'Chest', 'fly', 'weighted_reps', 'cable', 'Cable_Crossover', 'Stůj mezi kladkami, paže otevřené.', 'Spoj ruce obloukem před hrudníkem.', 'Dlaně před tělem.'),
+  bankExercise('low-high-cable-fly', 'LOW-TO-HIGH CABLE FLY', 'Chest', 'fly', 'weighted_reps', 'cable', 'Low_Cable_Crossover', 'Drž spodní kladky u boků.', 'Veď ruce šikmo vzhůru.', 'Ruce před horní částí hrudníku.'),
+  bankExercise('hammer-curl', 'HAMMER CURL', 'Arms', 'curl', 'weighted_reps', 'dumbbell', 'Hammer_Curls', 'Stůj, dlaně směřují k tělu.', 'Pokrč lokty bez otáčení zápěstí.', 'Činky u ramen, lokty u boků.'),
+  bankExercise('dumbbell-biceps-curl', 'DUMBBELL BICEPS CURL', 'Arms', 'curl', 'weighted_reps', 'dumbbell', 'Dumbbell_Bicep_Curl', 'Stůj s činkami podél těla.', 'Pokrč lokty a otoč dlaně vzhůru.', 'Činky u ramen.'),
+  bankExercise('incline-dumbbell-curl', 'INCLINE DUMBBELL CURL', 'Arms', 'curl', 'weighted_reps', 'dumbbell', 'Incline_Dumbbell_Curl', 'Sedni na šikmou lavici, paže visí.', 'Pokrč lokty a zvedni činky.', 'Činky u ramen, paže na místě.'),
+  bankExercise('concentration-curl', 'CONCENTRATION CURL', 'Arms', 'curl', 'per_side', 'dumbbell', 'Concentration_Curls', 'Sedni, loket opři o stehno.', 'Přitáhni činku k rameni.', 'Biceps stažený, trup klidný.'),
+  bankExercise('barbell-curl', 'BARBELL CURL', 'Arms', 'curl', 'weighted_reps', 'barbell', 'Barbell_Curl', 'Stůj s osou u stehen.', 'Pokrč lokty a zvedni osu.', 'Osa u hrudníku, lokty u boků.'),
+  bankExercise('ez-bar-curl', 'EZ-BAR CURL', 'Arms', 'curl', 'weighted_reps', 'barbell', 'EZ-Bar_Curl', 'Stůj s EZ osou u stehen.', 'Pokrč lokty a zvedni osu.', 'Osa u hrudníku.'),
+  bankExercise('rope-hammer-curl', 'ROPE HAMMER CURL', 'Arms', 'curl', 'weighted_reps', 'cable', 'Cable_Hammer_Curls_-_Rope_Attachment', 'Stůj u spodní kladky, drž lano.', 'Přitáhni konce lana k ramenům.', 'Lokty pokrčené, zápěstí neutrální.'),
+  bankExercise('single-arm-triceps-extension', 'SINGLE-ARM OVERHEAD TRICEPS EXTENSION', 'Arms', 'overhead', 'per_side', 'dumbbell', 'Dumbbell_One-Arm_Triceps_Extension', 'Drž činku za hlavou jednou rukou.', 'Narovnej loket vzhůru.', 'Paže nad hlavou téměř rovná.'),
+  bankExercise('skull-crusher', 'EZ-BAR SKULL CRUSHER', 'Arms', 'overhead', 'weighted_reps', 'barbell', 'EZ-Bar_Skullcrusher', 'Lehni si, EZ osa nad hrudníkem.', 'Pokrč lokty a spusť osu k čelu.', 'Lokty pokrčené, nadloktí svisle.'),
+  bankExercise('close-grip-bench-press', 'CLOSE-GRIP BENCH PRESS', 'Arms', 'press', 'weighted_reps', 'barbell', 'Close-Grip_Barbell_Bench_Press', 'Lehni si, osu drž užším úchopem.', 'Spusť osu a vytlač ji vzhůru.', 'Paže téměř rovné, lokty u těla.', 'Chest'),
+  bankExercise('goblet-squat', 'GOBLET SQUAT', 'Legs', 'squat', 'weighted_reps', 'dumbbell', 'Goblet_Squat', 'Drž činku u hrudníku.', 'Klesni boky mezi chodidla.', 'Stehna dole, hrudník nahoře.'),
+  bankExercise('dumbbell-romanian-deadlift', 'DUMBBELL ROMANIAN DEADLIFT', 'Legs', 'hinge', 'weighted_reps', 'dumbbell', 'Stiff-Legged_Dumbbell_Deadlift', 'Stůj s činkami před stehny.', 'Posuň boky dozadu a spusť činky.', 'Činky pod koleny, záda rovná.'),
+  bankExercise('walking-lunge', 'WALKING LUNGE', 'Legs', 'squat', 'per_side', 'dumbbell', 'Dumbbell_Lunges', 'Stůj s činkami podél těla.', 'Vykroč a klesni do výpadu.', 'Obě kolena pokrčená, trup rovně.', 'Glutes'),
+  bankExercise('reverse-lunge', 'REVERSE LUNGE', 'Legs', 'squat', 'per_side', 'dumbbell', 'Dumbbell_Rear_Lunge', 'Stůj rovně s činkami.', 'Ustup jednou nohou dozadu.', 'Zadní koleno nízko, přední chodidlo pevně.', 'Glutes'),
+  bankExercise('bulgarian-split-squat', 'BULGARIAN SPLIT SQUAT', 'Glutes', 'squat', 'per_side', 'dumbbell', 'Split_Squat_with_Dumbbells', 'Zadní chodidlo opři o lavici.', 'Klesni předním kolenem dolů.', 'Přední stehno téměř vodorovně.', 'Legs'),
+  bankExercise('step-up', 'STEP-UP', 'Glutes', 'squat', 'per_side', 'bodyweight', 'Step-up_with_Knee_Raise', 'Postav jedno chodidlo na box.', 'Vystup přes patu nahoru.', 'Stůj na boxu, pánev rovně.', 'Legs'),
+  bankExercise('barbell-hip-thrust', 'BARBELL HIP THRUST', 'Glutes', 'hinge', 'weighted_reps', 'barbell', 'Barbell_Hip_Thrust', 'Opři lopatky o lavici, osu přes boky.', 'Zvedni boky vzhůru.', 'Boky nahoře, hýždě stažené.'),
+  bankExercise('glute-bridge', 'GLUTE BRIDGE', 'Glutes', 'hinge', 'bodyweight_reps', 'bodyweight', 'Butt_Lift_Bridge', 'Lehni si, chodidla pod koleny.', 'Zvedni boky vzhůru.', 'Trup a stehna v jedné linii.'),
+  bankExercise('push-up', 'PUSH-UP', 'Bodyweight', 'press', 'bodyweight_reps', 'bodyweight', 'Pushups', 'Opři dlaně a špičky o zem.', 'Spusť hrudník a vytlač se zpět.', 'Tělo v jedné linii.', 'Chest'),
+  bankExercise('incline-push-up', 'INCLINE PUSH-UP', 'Bodyweight', 'press', 'bodyweight_reps', 'bodyweight', 'Incline_Push-Up', 'Opři dlaně o vyvýšenou plochu.', 'Spusť hrudník k opěře.', 'Vytlač se do rovných paží.', 'Chest'),
+  bankExercise('pull-up', 'PULL-UP', 'Bodyweight', 'pulldown', 'bodyweight_reps', 'bodyweight', 'Pullups', 'Vis na hrazdě, paže natažené.', 'Přitáhni hrudník k hrazdě.', 'Brada nad hrazdou.', 'Back'),
+  bankExercise('bodyweight-squat', 'BODYWEIGHT SQUAT', 'Bodyweight', 'squat', 'bodyweight_reps', 'bodyweight', 'Bodyweight_Squat', 'Stůj na šířku ramen.', 'Klesni boky dolů a dozadu.', 'Stehna dole, paty na zemi.', 'Legs'),
+  bankExercise('side-plank', 'SIDE PLANK', 'Bodyweight', 'crunch', 'timed', 'bodyweight', 'Side_Bridge', 'Lehni si na bok a opři loket.', 'Zvedni boky od země.', 'Tělo drž v jedné linii.', 'Core'),
+  bankExercise('dead-bug', 'DEAD BUG', 'Bodyweight', 'crunch', 'per_side', 'bodyweight', 'Dead_Bug', 'Lehni si, ruce a kolena nahoře.', 'Spusť opačnou ruku a nohu.', 'Končetiny nízko, bedra na zemi.', 'Core'),
+  bankExercise('bird-dog', 'BIRD DOG', 'Bodyweight', 'crunch', 'per_side', 'bodyweight', 'On-Your-Back_Quad_Stretch', 'Klekni na všechny čtyři.', 'Natáhni opačnou ruku a nohu.', 'Končetiny v ose trupu.', 'Core'),
+  bankExercise('mountain-climbers', 'MOUNTAIN CLIMBERS', 'Bodyweight', 'crunch', 'timed', 'bodyweight', 'Mountain_Climbers', 'Začni ve vysokém prkně.', 'Střídej kolena směrem k hrudníku.', 'Boky zůstávají nízko.', 'Core'),
+  bankExercise('superman', 'SUPERMAN', 'Bodyweight', 'hinge', 'timed', 'bodyweight', 'Superman', 'Lehni si na břicho, paže vpřed.', 'Zvedni paže a nohy od země.', 'Drž trup pevný a krk rovně.', 'Back'),
+  bankExercise('crunch', 'CRUNCH', 'Core', 'crunch', 'bodyweight_reps', 'bodyweight', 'Crunches', 'Lehni si, kolena pokrčená.', 'Zvedni lopatky směrem ke kolenům.', 'Břicho stažené, bedra na zemi.'),
+  bankExercise('leg-raise', 'LYING LEG RAISE', 'Core', 'crunch', 'bodyweight_reps', 'bodyweight', 'Flat_Bench_Lying_Leg_Raise', 'Lehni si s nohama nataženýma.', 'Zvedni nohy vzhůru.', 'Nohy nad boky, bedra pevná.'),
+  bankExercise('pigeon-pose', 'PIGEON POSE', 'Yoga', 'squat', 'hold', 'bodyweight', 'Lying_Glute', 'Přední nohu polož pokrčenou před tělo.', 'Spusť boky a uvolni zadní nohu.', 'Drž boky rovně a dýchej.', 'Mobility'),
+  bankExercise('downward-dog', 'DOWNWARD DOG', 'Yoga', 'hinge', 'hold', 'bodyweight', 'Inchworm', 'Začni na dlaních a kolenou.', 'Zvedni boky vysoko dozadu.', 'Tělo tvoří obrácené V.'),
+  bankExercise('cobra-pose', 'COBRA POSE', 'Yoga', 'hinge', 'hold', 'bodyweight', 'Looking_At_Ceiling', 'Lehni si na břicho, dlaně pod rameny.', 'Zvedni hrudník jemně vzhůru.', 'Pánev zůstává na zemi.'),
+  bankExercise('childs-pose', "CHILD'S POSE", 'Yoga', 'hinge', 'hold', 'bodyweight', 'Childs_Pose', 'Klekni si a sedni na paty.', 'Polož trup mezi stehna a paže vpřed.', 'Čelo na zemi, záda uvolněná.'),
+  bankExercise('cat-cow', 'CAT-COW', 'Mobility', 'hinge', 'timed', 'bodyweight', 'Cat_Stretch', 'Klekni na všechny čtyři.', 'Střídej vyhrbení a prohnutí zad.', 'Pohyb veď plynule s dechem.'),
+  bankExercise('warrior-one', 'WARRIOR I', 'Yoga', 'squat', 'hold', 'bodyweight', 'Split_Squats', 'Vykroč dopředu, zadní chodidlo natoč.', 'Pokrč přední koleno a zvedni paže.', 'Boky vpřed, trup vzpřímený.'),
+  bankExercise('warrior-two', 'WARRIOR II', 'Yoga', 'squat', 'hold', 'bodyweight', 'Side_Leg_Raises', 'Rozkroč se a natoč přední chodidlo.', 'Pokrč přední koleno, paže do stran.', 'Pohled přes přední ruku.'),
+  bankExercise('low-lunge-stretch', 'LOW LUNGE', 'Mobility', 'squat', 'hold', 'bodyweight', 'Kneeling_Hip_Flexor', 'Klekni jedním kolenem na zem.', 'Posuň pánev jemně vpřed.', 'Cítíš tah v přední straně kyčle.'),
+  bankExercise('figure-four-stretch', 'FIGURE FOUR STRETCH', 'Stretching', 'crunch', 'hold', 'bodyweight', 'Lying_Glute', 'Lehni si a polož kotník přes koleno.', 'Přitáhni stehno k hrudníku.', 'Hýžď se protahuje bez bolesti.'),
+  bankExercise('hip-flexor-stretch', 'HIP FLEXOR STRETCH', 'Stretching', 'squat', 'hold', 'bodyweight', 'Kneeling_Hip_Flexor', 'Klekni v dlouhém výpadu.', 'Podsad pánev a posuň ji vpřed.', 'Drž trup rovně.'),
+  bankExercise('hamstring-stretch', 'HAMSTRING STRETCH', 'Stretching', 'hinge', 'hold', 'bodyweight', 'Hamstring_Stretch', 'Natáhni jednu nohu před sebe.', 'Předkloň se z kyčlí.', 'Záda rovná, zadní strana stehna se protahuje.'),
+  bankExercise('thoracic-rotation', 'THORACIC ROTATION', 'Mobility', 'rotation', 'per_side', 'bodyweight', 'Torso_Rotation', 'Klekni na všechny čtyři, ruku za hlavou.', 'Otoč loket vzhůru.', 'Hrudník otevřený do strany.'),
+  bankExercise('shoulder-circles', 'SHOULDER CIRCLES', 'Mobility', 'rotation', 'timed', 'bodyweight', 'Shoulder_Circles', 'Stůj vzpřímeně s pažemi volně.', 'Kruž rameny dozadu a vpřed.', 'Pohyb plynulý bez bolesti.'),
+  bankExercise('hip-circles', 'HIP CIRCLES', 'Mobility', 'rotation', 'timed', 'bodyweight', 'Standing_Hip_Circles', 'Stůj s rukama v bok.', 'Kruž pánví v plném rozsahu.', 'Trup zůstává uvolněný.'),
+  bankExercise('quad-stretch', 'QUAD STRETCH', 'Stretching', 'leg-curl', 'hold', 'bodyweight', 'Standing_Elevated_Quad_Stretch', 'Stůj a chyť chodidlo za tělem.', 'Přitáhni patu k hýždi.', 'Kolena u sebe, pánev podsazená.'),
+  bankExercise('chest-opening-stretch', 'CHEST OPENING STRETCH', 'Stretching', 'fly', 'hold', 'bodyweight', 'Chest_And_Front_Of_Shoulder_Stretch', 'Postav se bokem ke stěně, dlaň opři.', 'Otoč trup jemně od paže.', 'Hrudník a přední rameno se protahují.'),
+  bankExercise('upper-back-stretch', 'UPPER BACK STRETCH', 'Stretching', 'row', 'hold', 'bodyweight', 'Upper_Back_Stretch', 'Propleť ruce před tělem.', 'Tlač dlaně vpřed a vyhrb horní záda.', 'Lopatky se oddálí.'),
 ]
 
 const imageSourceIds: Record<string, string> = {
@@ -144,6 +221,29 @@ const imageSourceIds: Record<string, string> = {
 
 const reversedImageIds = new Set(['leg-press', 'pec-fly', 'hyperextension', 'standing-hip-abduction', 'smith-squat', 'barbell-bench-press', 'romanian-deadlift'])
 
+for (const template of templates) {
+  if (template.sourceId) imageSourceIds[template.id] = template.sourceId
+}
+
+const equipmentOverrides: Partial<Record<NonNullable<ExerciseTemplate['equipment']>, string[]>> = {
+  barbell: ['barbell-bench-press', 'barbell-squat', 'romanian-deadlift'],
+  dumbbell: ['dumbbell-bench-press', 'one-arm-dumbbell-row', 'dumbbell-lateral-raise'],
+  cable: ['cable-row', 'cable-crossover', 'cable-pushdown', 'cable-biceps-curl', 'overhead-triceps-extension', 'rear-delt-fly'],
+  bodyweight: ['plank', 'hanging-leg-raise'],
+}
+for (const [equipment, ids] of Object.entries(equipmentOverrides) as Array<[NonNullable<ExerciseTemplate['equipment']>, string[]]>) {
+  for (const id of ids) {
+    const template = templates.find((item) => item.id === id)
+    if (template) template.equipment = equipment
+  }
+}
+const plankTemplate = templates.find((item) => item.id === 'plank')
+if (plankTemplate) { plankTemplate.exerciseType = 'timed'; plankTemplate.defaultReps = 30 }
+const hangingRaiseTemplate = templates.find((item) => item.id === 'hanging-leg-raise')
+if (hangingRaiseTemplate) hangingRaiseTemplate.exerciseType = 'bodyweight_reps'
+
+const exerciseSourceId = (template: ExerciseTemplate) => imageSourceIds[template.id]
+
 const defaultWorkoutIds = ['leg-press', 'chest-press', 'lat-pulldown', 'cable-row', 'leg-curl', 'treadmill']
 
 const todayKey = () => {
@@ -156,10 +256,10 @@ const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
 const makeExercise = (template: ExerciseTemplate, sets = template.defaultSets, reps = template.defaultReps, minutes = template.defaultMinutes): WorkoutExercise => ({
   exerciseId: template.id,
-  sets: template.kind === 'strength' ? Array.from({ length: sets ?? 3 }, () => ({ reps: reps ?? 10, weight: '', complete: false })) : [],
+  sets: template.exerciseType !== 'duration' ? Array.from({ length: sets ?? 3 }, () => ({ reps: reps ?? 10, weight: '', complete: false })) : [],
   note: '',
-  minutes: template.kind === 'cardio' ? minutes ?? 10 : undefined,
-  cardioComplete: template.kind === 'cardio' ? false : undefined,
+  minutes: template.exerciseType === 'duration' ? minutes ?? 10 : undefined,
+  cardioComplete: template.exerciseType === 'duration' ? false : undefined,
 })
 
 const makeDefaultWorkout = (): Workout => ({ id: newId(), date: todayKey(), exercises: defaultWorkoutIds.map((id) => makeExercise(templates.find((template) => template.id === id)!)) })
@@ -215,6 +315,45 @@ const normalizeTemplate = (value: unknown): WorkoutTemplate | null => {
 const toPlan = (exercise: WorkoutExercise): WorkoutPlanExercise => ({ exerciseId: exercise.exerciseId, reps: exercise.sets.map((set) => Math.max(1, set.reps)), minutes: exercise.minutes, note: exercise.note || undefined })
 const fromPlan = (plan: WorkoutPlanExercise): WorkoutExercise => ({ exerciseId: plan.exerciseId, sets: plan.reps.map((reps) => ({ reps, weight: '', complete: false })), note: plan.note ?? '', minutes: plan.minutes, cardioComplete: plan.minutes === undefined ? undefined : false })
 
+const preset = (id: string, name: string, audience: PresetAudience, focus: string, minutes: number, exerciseIds: string[]): WorkoutPreset => ({
+  id, name, audience, focus, minutes,
+  exercises: exerciseIds.flatMap((exerciseId) => {
+    const template = templates.find((item) => item.id === exerciseId)
+    return template ? [toPlan(makeExercise(template))] : []
+  }),
+})
+
+const workoutPresets: WorkoutPreset[] = [
+  preset('preset-chest-man', 'Chest — Man', 'man', 'Hrudník a triceps', 55, ['barbell-bench-press', 'incline-dumbbell-press', 'chest-press', 'dumbbell-fly', 'cable-pushdown']),
+  preset('preset-back-man', 'Back — Man', 'man', 'Záda a biceps', 55, ['lat-pulldown', 'barbell-row', 'cable-row', 'assisted-pull-up', 'barbell-curl']),
+  preset('preset-shoulders-man', 'Shoulders — Man', 'man', 'Ramena', 50, ['dumbbell-shoulder-press', 'arnold-press', 'dumbbell-lateral-raise', 'rear-delt-fly', 'face-pull']),
+  preset('preset-arms-man', 'Arms — Man', 'man', 'Biceps a triceps', 45, ['barbell-curl', 'hammer-curl', 'incline-dumbbell-curl', 'skull-crusher', 'cable-pushdown']),
+  preset('preset-legs-man', 'Legs — Man', 'man', 'Nohy', 60, ['barbell-squat', 'romanian-deadlift', 'leg-press', 'leg-curl', 'seated-calf-raise']),
+  preset('preset-upper-man', 'Upper Body — Man', 'man', 'Horní část těla', 60, ['barbell-bench-press', 'lat-pulldown', 'barbell-row', 'dumbbell-shoulder-press', 'cable-biceps-curl', 'cable-pushdown']),
+  preset('preset-full-man', 'Full Body — Man', 'man', 'Celé tělo', 65, ['barbell-squat', 'barbell-bench-press', 'lat-pulldown', 'romanian-deadlift', 'dumbbell-shoulder-press', 'plank']),
+  preset('preset-push-man', 'Push — Man', 'man', 'Tlakové cviky', 50, ['barbell-bench-press', 'incline-dumbbell-press', 'dumbbell-shoulder-press', 'dumbbell-lateral-raise', 'cable-pushdown']),
+  preset('preset-pull-man', 'Pull — Man', 'man', 'Tahové cviky', 50, ['lat-pulldown', 'barbell-row', 'cable-row', 'face-pull', 'hammer-curl']),
+  preset('preset-quick-man', 'Quick Gym — Man', 'man', 'Rychlý full body', 30, ['leg-press', 'chest-press', 'lat-pulldown', 'shoulder-press']),
+  preset('preset-legs-woman', 'Legs — Woman', 'woman', 'Nohy', 55, ['leg-press', 'romanian-deadlift', 'barbell-hip-thrust', 'leg-curl', 'hip-abduction', 'seated-calf-raise']),
+  preset('preset-glutes-woman', 'Glutes — Woman', 'woman', 'Hýždě', 50, ['barbell-hip-thrust', 'romanian-deadlift', 'bulgarian-split-squat', 'glute-bridge', 'hip-abduction']),
+  preset('preset-full-woman', 'Full Body — Woman', 'woman', 'Celé tělo', 55, ['goblet-squat', 'dumbbell-bench-press', 'cable-row', 'barbell-hip-thrust', 'dumbbell-shoulder-press', 'dead-bug']),
+  preset('preset-upper-woman', 'Upper Body — Woman', 'woman', 'Horní část těla', 45, ['chest-press', 'lat-pulldown', 'cable-row', 'arnold-press', 'face-pull']),
+  preset('preset-legs-glutes-woman', 'Legs & Glutes — Woman', 'woman', 'Nohy a hýždě', 60, ['goblet-squat', 'barbell-hip-thrust', 'walking-lunge', 'leg-curl', 'hip-abduction', 'seated-calf-raise']),
+  preset('preset-stretch-woman', 'Stretch — Woman', 'woman', 'Protažení celého těla', 25, ['cat-cow', 'downward-dog', 'low-lunge-stretch', 'pigeon-pose', 'figure-four-stretch', 'hamstring-stretch', 'childs-pose']),
+  preset('preset-yoga-woman', 'Yoga / Mobility — Woman', 'woman', 'Mobilita a klid', 30, ['cat-cow', 'downward-dog', 'cobra-pose', 'warrior-one', 'warrior-two', 'pigeon-pose', 'childs-pose']),
+  preset('preset-quick-woman', 'Quick Workout — Woman', 'woman', 'Rychlé celé tělo', 25, ['goblet-squat', 'glute-bridge', 'incline-push-up', 'cable-row', 'plank']),
+  preset('preset-beginner', 'Full Body Beginner', 'general', 'Začátečníci', 45, ['leg-press', 'chest-press', 'lat-pulldown', 'glute-bridge', 'plank']),
+  preset('preset-machines', 'Full Body Machines', 'general', 'Stroje', 50, ['leg-press', 'chest-press', 'lat-pulldown', 'leg-curl', 'shoulder-press', 'abs-machine']),
+  preset('preset-dumbbell', 'Dumbbell Full Body', 'general', 'Jednoručky', 50, ['goblet-squat', 'dumbbell-bench-press', 'one-arm-dumbbell-row', 'dumbbell-romanian-deadlift', 'arnold-press']),
+  preset('preset-bodyweight', 'Bodyweight Workout', 'general', 'Vlastní váha', 35, ['bodyweight-squat', 'push-up', 'reverse-lunge', 'glute-bridge', 'mountain-climbers', 'side-plank']),
+  preset('preset-core', 'Core Workout', 'general', 'Střed těla', 30, ['plank', 'side-plank', 'dead-bug', 'bird-dog', 'crunch', 'leg-raise']),
+  preset('preset-mobility', 'Mobility', 'general', 'Pohyblivost', 25, ['cat-cow', 'thoracic-rotation', 'shoulder-circles', 'hip-circles', 'low-lunge-stretch', 'hamstring-stretch']),
+  preset('preset-full-stretch', 'Full Body Stretch', 'general', 'Protažení', 25, ['childs-pose', 'chest-opening-stretch', 'upper-back-stretch', 'hip-flexor-stretch', 'hamstring-stretch', 'quad-stretch']),
+  preset('preset-quick', 'Quick 20–30 min', 'general', 'Rychlý workout', 25, ['goblet-squat', 'dumbbell-bench-press', 'cable-row', 'plank']),
+  preset('preset-circuit', 'Circuit / Kruháč', 'general', 'Kruhový trénink', 35, ['bodyweight-squat', 'push-up', 'cable-row', 'walking-lunge', 'mountain-climbers', 'dead-bug']),
+  preset('preset-together', 'Workout Together — Full Body', 'general', 'Společná stanoviště', 60, ['leg-press', 'chest-press', 'lat-pulldown', 'cable-row', 'leg-curl', 'abs-machine']),
+]
+
 const loadStore = (): Store => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -244,8 +383,8 @@ function App() {
 
   useEffect(() => localStorage.setItem(STORAGE_KEY, JSON.stringify(store)), [store])
 
-  const completedSets = store.active?.exercises.reduce((sum, exercise) => sum + exercise.sets.filter((set) => set.complete).length, 0) ?? 0
-  const totalSets = store.active?.exercises.reduce((sum, exercise) => sum + exercise.sets.length, 0) ?? 0
+  const completedSets = store.active?.exercises.reduce((sum, exercise) => sum + (exercise.sets.length ? exercise.sets.filter((set) => set.complete).length : exercise.cardioComplete ? 1 : 0), 0) ?? 0
+  const totalSets = store.active?.exercises.reduce((sum, exercise) => sum + (exercise.sets.length || 1), 0) ?? 0
 
   const updateExercise = (index: number, change: (exercise: WorkoutExercise) => WorkoutExercise) => {
     setStore((current) => {
@@ -320,6 +459,7 @@ function App() {
       <nav className="tabs" aria-label="Hlavní navigace">
         <button className={tab === 'today' ? 'active' : ''} onClick={() => setTab('today')}>Dnes</button>
         <button className={tab === 'templates' ? 'active' : ''} onClick={() => setTab('templates')}>Tréninky</button>
+        <button className={tab === 'girl' ? 'active' : ''} onClick={() => setTab('girl')}>Girl Workout</button>
         <button className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')}>Historie</button>
       </nav>
 
@@ -336,13 +476,14 @@ function App() {
             saveAsTemplate={saveActiveTemplate}
           />
         )}
-        {tab === 'templates' && <TemplatesView templates={store.templates} create={() => setEditor({ purpose: 'template' })} start={(template) => startWorkout(template.exercises.map(fromPlan))} edit={(template) => setEditor({ purpose: 'template', template })} rename={renameTemplate} duplicate={duplicateTemplate} remove={deleteTemplate} />}
+        {tab === 'templates' && <TemplatesView templates={store.templates} presets={workoutPresets} create={() => setEditor({ purpose: 'template' })} start={(template) => startWorkout(template.exercises.map(fromPlan))} edit={(template) => setEditor({ purpose: 'template', template })} rename={renameTemplate} duplicate={duplicateTemplate} remove={deleteTemplate} savePreset={(template) => setEditor({ purpose: 'template', template: { id: '', name: `${template.name} – vlastní`, exercises: template.exercises } })} />}
+        {tab === 'girl' && <PresetsView title="Girl Workout" eyebrow="WOMAN / GENERAL FITNESS" presets={workoutPresets.filter((item) => item.audience === 'woman')} start={(template) => startWorkout(template.exercises.map(fromPlan))} save={(template) => setEditor({ purpose: 'template', template: { id: '', name: `${template.name} – vlastní`, exercises: template.exercises } })} />}
         {tab === 'history' && <HistoryView history={store.history} />}
         {tab === 'sources' && <SourcesView />}
       </main>
 
       <footer><button className="text-button" onClick={() => setTab('sources')}>Zdroje obrázků</button></footer>
-      {editor && <NewWorkoutModal close={() => setEditor(null)} purpose={editor.purpose} initialTemplate={editor.purpose === 'template' ? editor.template : undefined} submit={(name, exercises) => editor.purpose === 'workout' ? startWorkout(exercises) : saveTemplate(name, exercises, editor.template)} />}
+      {editor && <NewWorkoutModal close={() => setEditor(null)} purpose={editor.purpose} initialTemplate={editor.purpose === 'template' ? editor.template : undefined} submit={(name, exercises) => editor.purpose === 'workout' ? startWorkout(exercises) : saveTemplate(name, exercises, editor.template?.id ? editor.template : undefined)} />}
     </div>
   )
 }
@@ -392,10 +533,12 @@ function TodayView({ workout, completedSets, totalSets, updateExercise, lastResu
   )
 }
 
+const exerciseImagePath = (template: ExerciseTemplate, frame: 'start' | 'end') => `/assets/exercises/${template.id}-${frame}.jpg`
+
 function ExerciseDiagram({ template }: { template: ExerciseTemplate }) {
   const reversed = reversedImageIds.has(template.id)
-  const startImage = `/assets/exercises/${template.id}-${reversed ? 'end' : 'start'}.jpg`
-  const endImage = `/assets/exercises/${template.id}-${reversed ? 'start' : 'end'}.jpg`
+  const startImage = exerciseImagePath(template, reversed ? 'end' : 'start')
+  const endImage = exerciseImagePath(template, reversed ? 'start' : 'end')
   return (
     <div className="exercise-visual exercise-photos" role="group" aria-label={`Startovní a konečná poloha cviku ${template.name}`}>
       <figure className="exercise-photo-frame">
@@ -509,8 +652,13 @@ function ExercisePose({ template, x, end }: { template: ExerciseTemplate; x: num
 }
 
 function ExerciseCard({ template, exercise, previous, update }: { template: ExerciseTemplate; exercise: WorkoutExercise; previous?: WorkoutExercise; update: (change: (exercise: WorkoutExercise) => WorkoutExercise) => void }) {
+  const weighted = template.exerciseType === 'weighted_reps' || (template.exerciseType === 'per_side' && template.equipment !== 'bodyweight')
+  const timed = template.exerciseType === 'timed' || template.exerciseType === 'hold'
+  const perSide = template.exerciseType === 'per_side'
+  const typeLabel: Record<ExerciseType, string> = { weighted_reps: 'SILOVÝ CVIK', bodyweight_reps: 'VLASTNÍ VÁHA', timed: 'NA ČAS', hold: 'VÝDRŽ', duration: 'CARDIO', per_side: 'NA KAŽDOU STRANU' }
+  const setUnit = timed ? 's' : perSide ? '× / strana' : '×'
   return (
-    <article className={`exercise-card ${template.kind === 'cardio' ? 'cardio-card' : ''}`}>
+    <article className={`exercise-card ${template.exerciseType === 'duration' ? 'cardio-card' : ''}`}>
       <ExerciseDiagram template={template} />
       <div className="movement-guide">
         <p><strong>Start:</strong> {template.movement.start}</p>
@@ -518,26 +666,26 @@ function ExerciseCard({ template, exercise, previous, update }: { template: Exer
         <p><strong>Konec:</strong> {template.movement.end}</p>
       </div>
       <div className="card-content">
-        <p className="exercise-number">{template.kind === 'strength' ? `SILOVÝ CVIK · ${template.category.toUpperCase()}` : 'CARDIO'}</p>
+        <p className="exercise-number">{typeLabel[template.exerciseType]} · {template.category.toUpperCase()}</p>
         <h2>{template.name}</h2>
         <ul className="instructions">{template.instructions.map((instruction) => <li key={instruction}>{instruction}</li>)}</ul>
 
-        {previous && template.kind === 'strength' && (
-          <p className="previous"><span>MINULE</span> {previous.sets.map((set) => `${set.weight || '—'} kg × ${set.reps}`).join(' / ')}</p>
+        {previous && template.exerciseType !== 'duration' && (
+          <p className="previous"><span>MINULE</span> {previous.sets.map((set) => `${weighted ? `${set.weight || '—'} kg × ` : ''}${set.reps}${timed ? ' s' : perSide ? ' / strana' : ''}`).join(' / ')}</p>
         )}
 
-        {template.kind === 'strength' ? (
+        {template.exerciseType !== 'duration' ? (
           <>
             <div className="field-label">SÉRIE</div>
-            <div className="sets-header"><span></span><span>VÁHA</span><span>OPAKOVÁNÍ</span></div>
+            <div className={`sets-header ${weighted ? '' : 'two-columns'}`}><span></span>{weighted && <span>VÁHA</span>}<span>{timed ? 'SEKUNDY' : perSide ? 'NA STRANU' : 'OPAKOVÁNÍ'}</span></div>
             <div className="sets">
               {exercise.sets.map((set, setIndex) => (
-                <div className={`set-row ${set.complete ? 'done' : ''}`} key={setIndex}>
+                <div className={`set-row ${weighted ? '' : 'two-columns'} ${set.complete ? 'done' : ''}`} key={setIndex}>
                   <button className="set-check" aria-label={`${set.complete ? 'Zrušit dokončení' : 'Dokončit'} série ${setIndex + 1}`} onClick={() => update((current) => ({ ...current, sets: current.sets.map((item, index) => index === setIndex ? { ...item, complete: !item.complete } : item) }))}>
                     <span className="check">{set.complete ? '✓' : setIndex + 1}</span>
                   </button>
-                  <label className="set-value"><input aria-label={`Váha série ${setIndex + 1}`} inputMode="decimal" type="number" min="0" step="0.5" placeholder="—" value={set.weight} onChange={(event) => update((current) => ({ ...current, sets: current.sets.map((item, index) => index === setIndex ? { ...item, weight: event.target.value } : item) }))} /><span>kg</span></label>
-                  <label className="set-value"><input aria-label={`Opakování série ${setIndex + 1}`} inputMode="numeric" type="number" min="0" step="1" value={set.reps} onChange={(event) => update((current) => ({ ...current, sets: current.sets.map((item, index) => index === setIndex ? { ...item, reps: Math.max(0, Number(event.target.value) || 0) } : item) }))} /><span>×</span></label>
+                  {weighted && <label className="set-value"><input aria-label={`Váha série ${setIndex + 1}`} inputMode="decimal" type="number" min="0" step="0.5" placeholder="—" value={set.weight} onChange={(event) => update((current) => ({ ...current, sets: current.sets.map((item, index) => index === setIndex ? { ...item, weight: event.target.value } : item) }))} /><span>kg</span></label>}
+                  <label className="set-value"><input aria-label={`${timed ? 'Sekundy' : 'Opakování'} série ${setIndex + 1}`} inputMode="numeric" type="number" min="0" step="1" value={set.reps} onChange={(event) => update((current) => ({ ...current, sets: current.sets.map((item, index) => index === setIndex ? { ...item, reps: Math.max(0, Number(event.target.value) || 0) } : item) }))} /><span>{setUnit}</span></label>
                 </div>
               ))}
             </div>
@@ -571,7 +719,7 @@ function HistoryView({ history }: { history: Workout[] }) {
               return (
                 <div className="history-result" key={`${exercise.exerciseId}-${index}`}>
                   <strong>{template?.name ?? exercise.exerciseId}</strong>
-                  <span>{exercise.sets.length ? exercise.sets.map((set) => `${set.weight || '—'} kg × ${set.reps}`).join(' / ') : `${exercise.minutes} minut`}</span>
+                  <span>{exercise.sets.length ? exercise.sets.map((set) => `${template?.exerciseType === 'weighted_reps' ? `${set.weight || '—'} kg × ` : ''}${set.reps}${template?.exerciseType === 'timed' || template?.exerciseType === 'hold' ? ' s' : template?.exerciseType === 'per_side' ? ' / strana' : ''}`).join(' / ') : `${exercise.minutes} minut`}</span>
                   {exercise.note && <em>„{exercise.note}“</em>}
                 </div>
               )
@@ -583,11 +731,11 @@ function HistoryView({ history }: { history: Workout[] }) {
   )
 }
 
-function TemplatesView({ templates: items, create, start, edit, rename, duplicate, remove }: { templates: WorkoutTemplate[]; create: () => void; start: (template: WorkoutTemplate) => void; edit: (template: WorkoutTemplate) => void; rename: (template: WorkoutTemplate) => void; duplicate: (template: WorkoutTemplate) => void; remove: (template: WorkoutTemplate) => void }) {
+function TemplatesView({ templates: items, presets, create, start, edit, rename, duplicate, remove, savePreset }: { templates: WorkoutTemplate[]; presets: WorkoutPreset[]; create: () => void; start: (template: WorkoutTemplate) => void; edit: (template: WorkoutTemplate) => void; rename: (template: WorkoutTemplate) => void; duplicate: (template: WorkoutTemplate) => void; remove: (template: WorkoutTemplate) => void; savePreset: (template: WorkoutTemplate) => void }) {
   return (
     <section className="templates-view">
-      <div className="section-heading"><div><p className="eyebrow">ULOŽENÉ PLÁNY</p><h1>Tréninky</h1></div><button className="primary compact" onClick={create}>＋ Nový trénink</button></div>
-      {!items.length && <div className="history-empty">Zatím tu není žádný uložený trénink.</div>}
+      <div className="section-heading"><div><p className="eyebrow">ULOŽENÉ PLÁNY</p><h1>Moje tréninky</h1></div><button className="primary compact" onClick={create}>＋ Nový trénink</button></div>
+      {!items.length && <div className="history-empty">Zatím tu není žádný vlastní trénink. Můžeš vytvořit nový nebo upravit preset.</div>}
       <div className="template-list">
         {items.map((template) => (
           <article className="template-card" key={template.id}>
@@ -599,6 +747,23 @@ function TemplatesView({ templates: items, create, start, edit, rename, duplicat
           </article>
         ))}
       </div>
+      <PresetsView title="Hotové workouty" eyebrow="PRESETY" presets={presets} start={start} save={savePreset} embedded />
+    </section>
+  )
+}
+
+function PresetsView({ title, eyebrow, presets, start, save, embedded = false }: { title: string; eyebrow: string; presets: WorkoutPreset[]; start: (template: WorkoutPreset) => void; save: (template: WorkoutPreset) => void; embedded?: boolean }) {
+  const groups: Array<{ audience: PresetAudience; label: string }> = [{ audience: 'man', label: 'Man / Strength' }, { audience: 'woman', label: 'Woman / Fitness' }, { audience: 'general', label: 'General' }]
+  return (
+    <section className={`presets-view ${embedded ? 'embedded' : ''}`}>
+      <p className="eyebrow">{eyebrow}</p><h1>{title}</h1>
+      {groups.filter((group) => presets.some((item) => item.audience === group.audience)).map((group) => <div className="preset-group" key={group.audience}>
+        {embedded && <h2>{group.label}</h2>}
+        <div className="preset-grid">{presets.filter((item) => item.audience === group.audience).map((template) => <article className="preset-card" key={template.id}>
+          <div><span>{template.focus}</span><h3>{template.name}</h3><p>{template.exercises.length} cviků · přibližně {template.minutes} min</p></div>
+          <div className="preset-actions"><button className="template-start" onClick={() => start(template)}>Spustit</button><button onClick={() => save(template)}>Upravit a uložit jako vlastní</button></div>
+        </article>)}</div>
+      </div>)}
     </section>
   )
 }
@@ -612,7 +777,7 @@ function SourcesView() {
       <a className="license-link" href="https://github.com/yuhonas/free-exercise-db/blob/main/LICENSE.md" target="_blank" rel="noreferrer">Licence Free Exercise DB</a>
       <ul>
         {templates.map((template) => {
-          const sourceId = imageSourceIds[template.id]
+          const sourceId = exerciseSourceId(template)
           const sourceBase = `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${sourceId}`
           const reversed = reversedImageIds.has(template.id)
           return (
@@ -629,6 +794,39 @@ function SourcesView() {
   )
 }
 
+type PickerFilter = 'All' | 'Chest' | 'Back' | 'Legs' | 'Glutes' | 'Shoulders' | 'Biceps' | 'Triceps' | 'Core' | 'Bodyweight' | 'Yoga' | 'Mobility' | 'Stretching' | 'Cardio'
+
+const pickerFilters: Array<{ id: PickerFilter; label: string }> = [
+  { id: 'All', label: 'Vše' },
+  { id: 'Chest', label: 'Hrudník' },
+  { id: 'Back', label: 'Záda' },
+  { id: 'Legs', label: 'Nohy' },
+  { id: 'Glutes', label: 'Hýždě' },
+  { id: 'Shoulders', label: 'Ramena' },
+  { id: 'Biceps', label: 'Biceps' },
+  { id: 'Triceps', label: 'Triceps' },
+  { id: 'Core', label: 'Core' },
+  { id: 'Bodyweight', label: 'Vlastní váha' },
+  { id: 'Yoga', label: 'Yoga' },
+  { id: 'Mobility', label: 'Mobilita' },
+  { id: 'Stretching', label: 'Protažení' },
+  { id: 'Cardio', label: 'Cardio' },
+]
+
+const categoryLabels: Record<ExerciseCategory, string> = {
+  Chest: 'Hrudník', Back: 'Záda', Legs: 'Nohy', Glutes: 'Hýždě', Shoulders: 'Ramena', Arms: 'Paže', Core: 'Core', Bodyweight: 'Vlastní váha', Yoga: 'Yoga', Mobility: 'Mobilita', Stretching: 'Protažení', Cardio: 'Cardio',
+}
+
+const normalizeSearch = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('cs')
+const exerciseCountWord = (count: number) => count === 1 ? 'CVIK' : count >= 2 && count <= 4 ? 'CVIKY' : 'CVIKŮ'
+const isBicepsExercise = (template: ExerciseTemplate) => template.category === 'Arms' && /biceps|curl/i.test(template.name)
+const matchesPickerFilter = (template: ExerciseTemplate, filter: PickerFilter) => {
+  if (filter === 'All') return true
+  if (filter === 'Biceps') return isBicepsExercise(template)
+  if (filter === 'Triceps') return template.category === 'Arms' && !isBicepsExercise(template)
+  return template.category === filter || template.secondaryCategory === filter
+}
+
 function NewWorkoutModal({ close, purpose, initialTemplate, submit }: { close: () => void; purpose: 'workout' | 'template'; initialTemplate?: WorkoutTemplate; submit: (name: string, exercises: WorkoutExercise[]) => void }) {
   const initialExercises = initialTemplate?.exercises.map(fromPlan) ?? []
   const [name, setName] = useState(initialTemplate?.name ?? '')
@@ -638,13 +836,24 @@ function NewWorkoutModal({ close, purpose, initialTemplate, submit }: { close: (
     return [template.id, { sets: initial?.sets.length || template.defaultSets || 3, reps: initial?.sets[0]?.reps || template.defaultReps || 10, minutes: initial?.minutes || template.defaultMinutes || 10 }]
   })))
   const [search, setSearch] = useState('')
-  const [category, setCategory] = useState<ExerciseCategory | 'All'>('All')
+  const [category, setCategory] = useState<PickerFilter>('All')
+  const [pickerView, setPickerView] = useState<'library' | 'selected'>(initialTemplate ? 'selected' : 'library')
   const selectedCount = selectedIds.length
   const filteredTemplates = useMemo(() => templates.filter((template) => {
-    const matchesCategory = category === 'All' || template.category === category
-    const matchesSearch = template.name.toLocaleLowerCase('cs').includes(search.trim().toLocaleLowerCase('cs'))
+    const matchesCategory = matchesPickerFilter(template, category)
+    const matchesSearch = normalizeSearch(template.name).includes(normalizeSearch(search.trim()))
     return matchesCategory && matchesSearch
   }), [category, search])
+  const selectedTemplates = useMemo(() => selectedIds.flatMap((id) => {
+    const template = templates.find((item) => item.id === id)
+    return template ? [template] : []
+  }), [selectedIds])
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = previousOverflow }
+  }, [])
 
   const toggle = (id: string) => setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
   const move = (id: string, direction: -1 | 1) => setSelectedIds((current) => {
@@ -654,6 +863,7 @@ function NewWorkoutModal({ close, purpose, initialTemplate, submit }: { close: (
     const result = [...current]; [result[index], result[next]] = [result[next], result[index]]
     return result
   })
+  const remove = (id: string) => setSelectedIds((current) => current.filter((item) => item !== id))
 
   const create = () => {
     const exercises = selectedIds.flatMap((id) => {
@@ -670,31 +880,48 @@ function NewWorkoutModal({ close, purpose, initialTemplate, submit }: { close: (
       <section className="modal" role="dialog" aria-modal="true" aria-labelledby="new-title">
         <div className="modal-handle" />
         <header><div><p className="eyebrow">{purpose === 'template' ? 'ULOŽENÝ TRÉNINK' : 'NOVÝ WORKOUT'}</p><h2 id="new-title">{initialTemplate ? 'Upravit trénink' : 'Vyber cviky'}</h2></div><button className="close" onClick={close} aria-label="Zavřít">×</button></header>
-        <div className="library-tools">
-          {purpose === 'template' && <label className="template-name"><span>Název tréninku</span><input type="text" maxLength={60} placeholder="Např. Pondělí – Full Body" value={name} onChange={(event) => setName(event.target.value)} /></label>}
-          <label className="exercise-search"><span>⌕</span><input type="search" placeholder="Hledat cvik…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
-          <div className="category-filters" aria-label="Kategorie cviků">
-            {(['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Cardio'] as const).map((item) => <button key={item} className={category === item ? 'active' : ''} onClick={() => setCategory(item)}>{item === 'All' ? 'Vše' : item}</button>)}
-          </div>
-          <p className="library-count">{filteredTemplates.length} cviků</p>
+        {purpose === 'template' && <label className="template-name"><span>Název tréninku</span><input type="text" maxLength={60} placeholder="Např. Pondělí – Full Body" value={name} onChange={(event) => setName(event.target.value)} /></label>}
+        <div className="picker-view-tabs" role="tablist" aria-label="Výběr a nastavení cviků">
+          <button role="tab" aria-selected={pickerView === 'library'} className={pickerView === 'library' ? 'active' : ''} onClick={() => setPickerView('library')}>Cviky</button>
+          <button role="tab" aria-selected={pickerView === 'selected'} className={pickerView === 'selected' ? 'active' : ''} onClick={() => setPickerView('selected')}>Vybrané <b>{selectedCount}</b></button>
         </div>
-        <div className="exercise-picker">
-          {filteredTemplates.map((template) => (
-            <div className={`picker-item ${selectedIds.includes(template.id) ? 'selected' : ''}`} key={template.id}>
-              <button className="picker-toggle" onClick={() => toggle(template.id)}>
-                <span className="picker-check">{selectedIds.includes(template.id) ? selectedIds.indexOf(template.id) + 1 : ''}</span><span><strong>{template.name}</strong><small>{template.category} · {template.kind === 'strength' ? 'opakování' : 'minuty'}</small></span>
-              </button>
-              {selectedIds.includes(template.id) && (
-                <div className="picker-settings">
-                  {template.kind === 'strength' ? <><NumberField label="Série" value={settings[template.id].sets} setValue={(sets) => setSettings((current) => ({ ...current, [template.id]: { ...current[template.id], sets } }))} /><NumberField label="Opakování" value={settings[template.id].reps} setValue={(reps) => setSettings((current) => ({ ...current, [template.id]: { ...current[template.id], reps } }))} /></> : <NumberField label="Minuty" value={settings[template.id].minutes} setValue={(minutes) => setSettings((current) => ({ ...current, [template.id]: { ...current[template.id], minutes } }))} />}
-                  <div className="order-controls"><span>Pořadí {selectedIds.indexOf(template.id) + 1}</span><button aria-label={`Posunout ${template.name} nahoru`} disabled={selectedIds.indexOf(template.id) === 0} onClick={() => move(template.id, -1)}>↑</button><button aria-label={`Posunout ${template.name} dolů`} disabled={selectedIds.indexOf(template.id) === selectedIds.length - 1} onClick={() => move(template.id, 1)}>↓</button></div>
-                </div>
-              )}
+
+        {pickerView === 'library' ? <>
+          <div className="library-tools">
+            <label className="exercise-search"><span aria-hidden="true">⌕</span><input type="search" aria-label="Hledat cvik" placeholder="Hledat cvik…" value={search} onChange={(event) => setSearch(event.target.value)} />{search && <button type="button" aria-label="Vymazat hledání" onClick={() => setSearch('')}>×</button>}</label>
+            <div className="category-filters" aria-label="Kategorie cviků">
+              {pickerFilters.map((item) => <button key={item.id} aria-pressed={category === item.id} className={category === item.id ? 'active' : ''} onClick={() => setCategory(item.id)}>{item.label}</button>)}
             </div>
-          ))}
-          {!filteredTemplates.length && <p className="picker-empty">Žádný cvik neodpovídá filtru.</p>}
-        </div>
-        <button className="primary modal-start" disabled={!selectedCount || (purpose === 'template' && !name.trim())} onClick={create}>{purpose === 'template' ? 'ULOŽIT TRÉNINK' : 'ZAČÍT WORKOUT'} · {selectedCount}</button>
+            <p className="library-count">{filteredTemplates.length} {filteredTemplates.length === 1 ? 'cvik' : 'cviků'}</p>
+          </div>
+          <div className="exercise-picker">
+            {filteredTemplates.map((template) => {
+              const selectedIndex = selectedIds.indexOf(template.id)
+              const selected = selectedIndex >= 0
+              return <button className={`picker-card ${selected ? 'selected' : ''}`} aria-pressed={selected} aria-label={`${selected ? 'Odebrat' : 'Vybrat'} ${template.name}`} onClick={() => toggle(template.id)} key={template.id}>
+                <img src={`/assets/exercises/${template.id}-start.jpg`} alt="" loading="lazy" decoding="async" />
+                <span className="picker-card-copy"><strong>{template.name}</strong><small>{categoryLabels[template.category]} · {template.exerciseType === 'duration' ? 'minuty' : template.exerciseType === 'timed' || template.exerciseType === 'hold' ? 'sekundy' : template.exerciseType === 'per_side' ? 'na stranu' : 'opakování'}</small></span>
+                <span className="picker-check" aria-hidden="true">{selected ? selectedIndex + 1 : ''}</span>
+              </button>
+            })}
+            {!filteredTemplates.length && <p className="picker-empty">Žádný cvik neodpovídá hledání nebo filtru.</p>}
+          </div>
+        </> : <div className="selected-exercises">
+          {!selectedTemplates.length && <div className="picker-empty selected-empty"><p>Nemáš vybraný žádný cvik.</p><button onClick={() => setPickerView('library')}>Vybrat cviky</button></div>}
+          {selectedTemplates.map((template, index) => <article className="selected-exercise" key={template.id}>
+            <div className="selected-exercise-head">
+              <span className="selected-order">{index + 1}</span><img src={`/assets/exercises/${template.id}-start.jpg`} alt="" loading="lazy" decoding="async" />
+              <div><strong>{template.name}</strong><small>{categoryLabels[template.category]}</small></div>
+              <button className="remove-exercise" aria-label={`Odebrat ${template.name}`} onClick={() => remove(template.id)}>×</button>
+            </div>
+            <div className="picker-settings">
+              {template.exerciseType !== 'duration' ? <><NumberField label="Série" value={settings[template.id].sets} setValue={(sets) => setSettings((current) => ({ ...current, [template.id]: { ...current[template.id], sets } }))} /><NumberField label={template.exerciseType === 'timed' || template.exerciseType === 'hold' ? 'Sekundy' : template.exerciseType === 'per_side' ? 'Na stranu' : 'Opakování'} value={settings[template.id].reps} setValue={(reps) => setSettings((current) => ({ ...current, [template.id]: { ...current[template.id], reps } }))} /></> : <NumberField label="Minuty" value={settings[template.id].minutes} setValue={(minutes) => setSettings((current) => ({ ...current, [template.id]: { ...current[template.id], minutes } }))} />}
+              <div className="order-controls"><span>Pořadí {index + 1} z {selectedCount}</span><button aria-label={`Posunout ${template.name} nahoru`} disabled={index === 0} onClick={() => move(template.id, -1)}>↑</button><button aria-label={`Posunout ${template.name} dolů`} disabled={index === selectedCount - 1} onClick={() => move(template.id, 1)}>↓</button></div>
+            </div>
+          </article>)}
+        </div>}
+
+        <div className="picker-footer"><p>Vybráno: <strong>{selectedCount}</strong></p><button className="primary modal-start" disabled={!selectedCount || (purpose === 'template' && !name.trim())} onClick={create}>{purpose === 'template' ? 'ULOŽIT TRÉNINK' : `PŘIDAT ${selectedCount} ${exerciseCountWord(selectedCount)}`}</button></div>
       </section>
     </div>
   )
